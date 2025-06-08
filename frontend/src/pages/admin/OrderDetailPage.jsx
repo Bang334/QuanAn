@@ -60,6 +60,12 @@ const OrderDetailPage = () => {
 
   const handleUpdateOrderStatus = async (newStatus) => {
     try {
+      // Kiểm tra tính hợp lệ của việc cập nhật trạng thái
+      if (!isValidStatusTransition(order.status, newStatus)) {
+        setError('Không thể cập nhật trạng thái theo cách này. Chỉ được phép cập nhật tiến tới theo trình tự.');
+        return;
+      }
+
       await axios.put(
         `${API_URL}/api/orders/${id}/status`,
         { status: newStatus },
@@ -74,10 +80,46 @@ const OrderDetailPage = () => {
         status: newStatus
       });
       
+      setError(null); // Xóa lỗi nếu thành công
     } catch (error) {
       console.error('Error updating order status:', error);
       setError('Lỗi khi cập nhật trạng thái đơn hàng');
     }
+  };
+
+  // Kiểm tra tính hợp lệ của việc chuyển trạng thái
+  const isValidStatusTransition = (currentStatus, newStatus) => {
+    // Định nghĩa thứ tự trạng thái hợp lệ
+    const statusOrder = [
+      'pending',
+      'preparing',
+      'ready',
+      'served',
+      'payment_requested',
+      'completed'
+    ];
+    
+    // Trường hợp đặc biệt: có thể hủy đơn hàng từ bất kỳ trạng thái nào trừ completed
+    if (newStatus === 'cancelled') {
+      return currentStatus !== 'completed';
+    }
+    
+    // Trường hợp đặc biệt: không thể thay đổi trạng thái nếu đã hủy hoặc đã hoàn thành
+    if (currentStatus === 'cancelled' || currentStatus === 'completed') {
+      return false;
+    }
+    
+    // Kiểm tra thứ tự trạng thái
+    const currentIndex = statusOrder.indexOf(currentStatus);
+    const newIndex = statusOrder.indexOf(newStatus);
+    
+    // Nếu không tìm thấy một trong hai trạng thái trong danh sách
+    if (currentIndex === -1 || newIndex === -1) {
+      return false;
+    }
+    
+    // Chỉ cho phép chuyển tiến một bước hoặc giữ nguyên
+    return newIndex === currentIndex || newIndex === currentIndex + 1;
   };
 
   const handleUpdatePayment = async (paymentStatus, paymentMethod) => {
@@ -341,10 +383,12 @@ const OrderDetailPage = () => {
                   <MenuItem value="preparing">Đang chuẩn bị</MenuItem>
                   <MenuItem value="ready">Sẵn sàng phục vụ</MenuItem>
                   <MenuItem value="served">Đã phục vụ</MenuItem>
+                  <MenuItem value="payment_requested">Yêu cầu thanh toán</MenuItem>
                   <MenuItem value="completed">Hoàn thành</MenuItem>
                   <MenuItem value="cancelled">Đã hủy</MenuItem>
                 </Select>
               </FormControl>
+              {error && <Alert severity="error" sx={{ mt: 2 }}>{error}</Alert>}
 
               {order.paymentStatus !== 'paid' && (
                 <>

@@ -51,6 +51,8 @@ app.use('/api/reviews', require('./routes/review.routes'));
 app.use('/api/payments', require('./routes/payment.routes'));
 app.use('/api/promotions', require('./routes/promotion.routes'));
 app.use('/api/salaries', require('./routes/salary.routes'));
+app.use('/api/inventory', require('./routes/inventory.routes'));
+app.use('/api/kitchen-permissions', require('./routes/kitchen-permissions.routes'));
 
 // Socket.IO connection
 io.on('connection', (socket) => {
@@ -84,6 +86,31 @@ io.on('connection', (socket) => {
   socket.on('salaryUpdate', (data) => {
     io.emit('salaryStatusChanged', data);
   });
+  
+  // Handle inventory updates
+  socket.on('inventoryUpdate', (data) => {
+    io.emit('inventoryStatusChanged', data);
+  });
+  
+  // Handle purchase order updates
+  socket.on('purchaseOrderUpdate', (data) => {
+    io.emit('purchaseOrderStatusChanged', data);
+  });
+  
+  // Handle inventory report updates
+  socket.on('inventoryReportUpdate', (data) => {
+    io.emit('inventoryReportUpdated', data);
+  });
+  
+  // Handle low stock alerts
+  socket.on('lowStockAlert', (data) => {
+    io.emit('lowStockNotification', data);
+  });
+  
+  // Handle forecast updates
+  socket.on('forecastUpdate', (data) => {
+    io.emit('forecastUpdated', data);
+  });
 });
 
 // Database connection
@@ -94,9 +121,9 @@ const startServer = async () => {
     await sequelize.authenticate();
     console.log('Database connection has been established successfully.');
     
-    // Sync database models with alter:true to allow schema changes without destroying data
-    await sequelize.sync({ alter: true });
-    console.log('Database synced successfully');
+    // Tắt chức năng tự động tạo bảng
+    // await sequelize.sync({ alter: true });
+    console.log('Database sync disabled. Using existing tables.');
     
     // Check if there are any menu items, if not, add some sample items
     const { MenuItem } = require('./models');

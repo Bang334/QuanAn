@@ -183,25 +183,31 @@ router.get('/stats/category', authenticateToken, isAdmin, async (req, res) => {
       dateFilter = `AND p.paymentDate <= '${end.toISOString()}'`;
     }
     
+    // Get all unique categories first
+    const categories = await sequelize.query(`
+      SELECT DISTINCT category FROM menu_items
+    `, { type: sequelize.QueryTypes.SELECT });
+    
     // Get category revenue statistics through raw SQL query
+    // Start from menu_items to include all categories, even those with no orders
     const categoryStats = await sequelize.query(`
       SELECT 
         mi.category,
         COUNT(DISTINCT oi.orderId) AS numberOfOrders,
-        SUM(oi.quantity) AS totalItems,
-        SUM(oi.quantity * oi.price) AS totalRevenue,
-        AVG(oi.price) AS averagePrice,
+        COALESCE(SUM(oi.quantity), 0) AS totalItems,
+        COALESCE(SUM(oi.quantity * oi.price), 0) AS totalRevenue,
+        COALESCE(AVG(oi.price), 0) AS averagePrice,
         MAX(p.paymentDate) AS lastOrderDate
       FROM 
-        order_items oi
-      JOIN 
-        menu_items mi ON oi.menuItemId = mi.id
-      JOIN 
-        orders o ON oi.orderId = o.id
+        menu_items mi
+      LEFT JOIN 
+        order_items oi ON mi.id = oi.menuItemId
+      LEFT JOIN 
+        orders o ON oi.orderId = o.id AND o.status = 'completed'
       LEFT JOIN 
         payments p ON o.id = p.orderId
       WHERE 
-        o.status = 'completed'
+        1=1
         ${dateFilter}
       GROUP BY 
         mi.category
@@ -209,7 +215,23 @@ router.get('/stats/category', authenticateToken, isAdmin, async (req, res) => {
         totalRevenue DESC
     `, { type: sequelize.QueryTypes.SELECT });
     
-    return res.json(categoryStats);
+    // Ensure all categories are included, even if they have no orders
+    const allCategoryStats = categories.map(cat => {
+      const existingStat = categoryStats.find(stat => stat.category === cat.category);
+      if (existingStat) {
+        return existingStat;
+      }
+      return {
+        category: cat.category,
+        numberOfOrders: 0,
+        totalItems: 0,
+        totalRevenue: 0,
+        averagePrice: 0,
+        lastOrderDate: null
+      };
+    });
+    
+    return res.json(allCategoryStats);
   } catch (error) {
     console.error('Error getting category revenue statistics:', error);
     res.status(500).json({ message: 'Lỗi khi lấy thống kê doanh thu theo danh mục', error: error.message });

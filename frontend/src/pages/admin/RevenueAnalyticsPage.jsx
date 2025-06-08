@@ -294,6 +294,14 @@ const RevenueAnalyticsPage = () => {
   };
 
   const renderCategoryChart = () => {
+    // Find the maximum value in the category data to set proper y-axis domain
+    const maxValue = categoryData && categoryData.length > 0
+      ? Math.max(...categoryData.map(item => item.totalRevenue))
+      : 0;
+    
+    // Calculate a reasonable y-axis maximum that's at least 10% higher than the max value
+    const yAxisMax = Math.ceil(maxValue * 1.1 / 100000) * 100000;
+    
     return (
       <Card className="mb-4">
         <Card.Header className="d-flex justify-content-between align-items-center">
@@ -311,7 +319,10 @@ const RevenueAnalyticsPage = () => {
               >
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="category" />
-                <YAxis tickFormatter={formatChartData} />
+                <YAxis 
+                  tickFormatter={formatChartData} 
+                  domain={[0, yAxisMax]} 
+                />
                 <Tooltip formatter={(value) => formatCurrency(value)} />
                 <Legend />
                 <Bar 

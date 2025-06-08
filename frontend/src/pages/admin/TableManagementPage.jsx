@@ -288,7 +288,7 @@ const TableManagementPage = () => {
       <Grid container spacing={2}>
         {tables.length > 0 ? (
           tables.map((table) => (
-            <Grid item xs={12} sm={6} md={4} lg={3} key={table.id}>
+            <Grid xs={12} sm={6} md={4} key={table.id}>
               <Card 
                 sx={{ 
                   position: 'relative',
@@ -353,7 +353,7 @@ const TableManagementPage = () => {
             </Grid>
           ))
         ) : (
-          <Grid item xs={12}>
+          <Grid xs={12}>
             <Paper sx={{ p: 3, textAlign: 'center' }}>
               <Typography>Không có bàn nào được tạo</Typography>
             </Paper>

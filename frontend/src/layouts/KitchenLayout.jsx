@@ -24,7 +24,9 @@ import {
   Dashboard as DashboardIcon,
   Restaurant as RestaurantIcon,
   ExitToApp as LogoutIcon,
-  AttachMoney as SalaryIcon
+  AttachMoney as SalaryIcon,
+  Inventory as InventoryIcon,
+  AddCircleOutline as ProposalIcon
 } from '@mui/icons-material';
 import { Link as RouterLink } from 'react-router-dom';
 
@@ -65,6 +67,7 @@ const KitchenLayout = () => {
 
   const menuItems = [
     { text: 'Đơn hàng cần xử lý', icon: <DashboardIcon />, path: '/kitchen' },
+    { text: 'Quản lý kho', icon: <InventoryIcon />, path: '/kitchen/inventory' },
     { text: 'Xem lương', icon: <SalaryIcon />, path: '/kitchen/salary' },
   ];
 

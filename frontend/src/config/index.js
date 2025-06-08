@@ -1,5 +1,5 @@
 // API Configuration
-export const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+export const API_URL = 'http://localhost:5000';
 
 // Default image for menu items
 export const DEFAULT_FOOD_IMAGE = `${API_URL}/uploads/menu/default.jpg`;

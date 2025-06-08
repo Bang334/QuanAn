@@ -239,6 +239,7 @@ const OrderManagementPage = () => {
       case 'preparing': return 'Đang chuẩn bị';
       case 'ready': return 'Sẵn sàng phục vụ';
       case 'served': return 'Đã phục vụ';
+      case 'payment_requested': return 'Yêu cầu thanh toán';
       case 'completed': return 'Hoàn thành';
       case 'cancelled': return 'Đã hủy';
       default: return status;
@@ -251,6 +252,7 @@ const OrderManagementPage = () => {
       case 'preparing': return 'warning';
       case 'ready': return 'info';
       case 'served': return 'info';
+      case 'payment_requested': return 'secondary';
       case 'completed': return 'success';
       case 'cancelled': return 'error';
       default: return 'default';
@@ -284,7 +286,7 @@ const OrderManagementPage = () => {
       
       <Paper sx={{ p: 2, mb: 3 }}>
         <Grid container spacing={2} alignItems="center">
-          <Grid item xs={12} sm={4}>
+          <Grid sx={{ gridColumn: 'span 12', '@media (min-width: 600px)': { gridColumn: 'span 4' } }}>
             <TextField
               fullWidth
               placeholder="Tìm kiếm theo ID đơn hàng hoặc bàn..."
@@ -299,7 +301,7 @@ const OrderManagementPage = () => {
               }}
             />
           </Grid>
-          <Grid item xs={12} sm={3}>
+          <Grid sx={{ gridColumn: 'span 12', '@media (min-width: 600px)': { gridColumn: 'span 3' } }}>
             <FormControl fullWidth>
               <InputLabel>Trạng thái</InputLabel>
               <Select
@@ -317,7 +319,7 @@ const OrderManagementPage = () => {
               </Select>
             </FormControl>
           </Grid>
-          <Grid item xs={12} sm={2.5}>
+          <Grid sx={{ gridColumn: 'span 12', '@media (min-width: 600px)': { gridColumn: 'span 2.5' } }}>
             <TextField
               fullWidth
               label="Từ ngày"
@@ -328,7 +330,7 @@ const OrderManagementPage = () => {
               InputLabelProps={{ shrink: true }}
             />
           </Grid>
-          <Grid item xs={12} sm={2.5}>
+          <Grid sx={{ gridColumn: 'span 12', '@media (min-width: 600px)': { gridColumn: 'span 2.5' } }}>
             <TextField
               fullWidth
               label="Đến ngày"
@@ -406,7 +408,7 @@ const OrderManagementPage = () => {
             </DialogTitle>
             <DialogContent>
               <Grid container spacing={2} sx={{ mt: 1 }}>
-                <Grid item xs={12} sm={6}>
+                <Grid sx={{ gridColumn: 'span 12', '@media (min-width: 600px)': { gridColumn: 'span 6' } }}>
                   <Typography variant="subtitle1" gutterBottom>
                     Thông tin đơn hàng
                   </Typography>
@@ -431,7 +433,7 @@ const OrderManagementPage = () => {
                   )}
                 </Grid>
                 
-                <Grid item xs={12} sm={6}>
+                <Grid sx={{ gridColumn: 'span 12', '@media (min-width: 600px)': { gridColumn: 'span 6' } }}>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <Typography variant="subtitle1">
                       Tổng tiền
@@ -483,7 +485,7 @@ const OrderManagementPage = () => {
                   </Box>
                 </Grid>
                 
-                <Grid item xs={12}>
+                <Grid sx={{ gridColumn: 'span 12' }}>
                   <Typography variant="subtitle1" gutterBottom>
                     Danh sách món
                   </Typography>

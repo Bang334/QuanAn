@@ -24,6 +24,7 @@ import {
 import RefreshIcon from '@mui/icons-material/Refresh';
 import axios from 'axios';
 import { API_URL } from '../../config';
+import * as inventoryService from '../../services/inventoryService';
 
 const DashboardPage = () => {
   const theme = useTheme();
@@ -149,6 +150,32 @@ const DashboardPage = () => {
       
       // Get the updated order status from the response
       const { orderItem, orderStatus } = response.data;
+      
+      // Nếu món ăn được đánh dấu là sẵn sàng, cập nhật số lượng nguyên liệu
+      if (status === 'ready') {
+        try {
+          // Tìm thông tin món ăn từ danh sách orders
+          const order = orders.find(o => o.id === orderId);
+          const item = order?.OrderItems.find(i => i.id === itemId);
+          
+          if (item && item.menuItemId) {
+            // Gọi API để cập nhật số lượng nguyên liệu
+            await inventoryService.processIngredientUsage({
+              orderId,
+              orderItems: [{
+                orderItemId: itemId,
+                menuItemId: item.menuItemId,
+                quantity: item.quantity
+              }]
+            });
+            
+            console.log('Ingredient quantities updated successfully');
+          }
+        } catch (ingredientError) {
+          console.error('Error updating ingredient quantities:', ingredientError);
+          // Không hiển thị lỗi này cho người dùng, chỉ ghi log
+        }
+      }
       
       // Cập nhật state
       setOrders(prevOrders => {

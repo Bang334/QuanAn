@@ -31,7 +31,14 @@ import {
   Payments as PaymentsIcon,
   LocalOffer as PromotionIcon,
   Analytics as AnalyticsIcon,
-  AttachMoney as SalaryIcon
+  AttachMoney as SalaryIcon,
+  Inventory as InventoryIcon,
+  Assessment as ReportsIcon,
+  MenuBook as RecipeIcon,
+  ShoppingCart as ShoppingIcon,
+  Security as SecurityIcon,
+  RateReview as ReviewIcon,
+  AddCircleOutline as ProposalIcon
 } from '@mui/icons-material';
 import { Link as RouterLink } from 'react-router-dom';
 
@@ -73,13 +80,19 @@ const AdminLayout = () => {
   const menuItems = [
     { text: 'Dashboard', icon: <DashboardIcon />, path: '/admin' },
     { text: 'Quản lý thực đơn', icon: <RestaurantIcon />, path: '/admin/menu' },
+    { text: 'Quản lý công thức', icon: <RecipeIcon />, path: '/admin/recipes' },
+    { text: 'Quản lý kho', icon: <InventoryIcon />, path: '/admin/inventory' },
+    { text: 'Báo cáo kho', icon: <ReportsIcon />, path: '/admin/reports' },
+    { text: 'Đơn đặt hàng', icon: <ShoppingIcon />, path: '/admin/shopping' },
     { text: 'Quản lý bàn', icon: <TableBarIcon />, path: '/admin/tables' },
     { text: 'Quản lý nhân viên', icon: <PeopleIcon />, path: '/admin/users' },
     { text: 'Quản lý đơn hàng', icon: <ReceiptIcon />, path: '/admin/orders' },
+    { text: 'Quản lý đánh giá', icon: <ReviewIcon />, path: '/admin/reviews' },
     { text: 'Quản lý thanh toán', icon: <PaymentsIcon />, path: '/admin/payments' },
     { text: 'Quản lý khuyến mãi', icon: <PromotionIcon />, path: '/admin/promotions' },
     { text: 'Quản lý lương', icon: <SalaryIcon />, path: '/admin/salaries' },
     { text: 'Phân tích doanh thu', icon: <AnalyticsIcon />, path: '/admin/analytics' },
+    { text: 'Quyền nhân viên bếp', icon: <SecurityIcon />, path: '/admin/kitchen-permissions' },
   ];
 
   const drawer = (

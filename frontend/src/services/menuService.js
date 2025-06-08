@@ -1,12 +1,9 @@
-import axios from 'axios';
-import { API_URL } from '../config';
-
-const API = `${API_URL}/api/menu`;
+import API from '../utils/API';
 
 // Lấy tất cả các món ăn
 export const getAllMenuItems = async () => {
   try {
-    const response = await axios.get(API);
+    const response = await API.get('/menu');
     return response.data;
   } catch (error) {
     console.error('Error fetching menu items:', error);
@@ -17,8 +14,8 @@ export const getAllMenuItems = async () => {
 // Lấy món ăn theo ID
 export const getMenuItemById = async (id) => {
   try {
-    console.log(`Fetching menu item ${id} from API ${API}/${id}`);
-    const response = await axios.get(`${API}/${id}`);
+    console.log(`Fetching menu item ${id} from API`);
+    const response = await API.get(`/menu/${id}`);
     console.log('Menu item data received:', response.data);
     return response.data;
   } catch (error) {
@@ -30,7 +27,7 @@ export const getMenuItemById = async (id) => {
 // Lấy món ăn theo danh mục
 export const getMenuItemsByCategory = async (category) => {
   try {
-    const response = await axios.get(`${API}/category/${category}`);
+    const response = await API.get(`/menu/category/${category}`);
     return response.data;
   } catch (error) {
     console.error(`Error fetching menu items by category ${category}:`, error);
@@ -41,7 +38,7 @@ export const getMenuItemsByCategory = async (category) => {
 // Lấy các món ăn phổ biến
 export const getPopularItems = async (limit = 5) => {
   try {
-    const response = await axios.get(`${API}/popular`, { params: { limit } });
+    const response = await API.get(`/menu/popular`, { params: { limit } });
     return response.data;
   } catch (error) {
     console.error('Error fetching popular menu items:', error);

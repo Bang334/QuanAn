@@ -98,8 +98,7 @@ const DashboardPage = () => {
           employeeCount,
         });
         
-        // Tạo dữ liệu biểu đồ doanh thu
-        // Nhóm đơn hàng theo ngày trong 7 ngày gần đây
+        // Lấy dữ liệu doanh thu 7 ngày gần đây từ API
         const last7Days = Array.from({ length: 7 }, (_, i) => {
           const date = new Date();
           date.setDate(date.getDate() - i);
@@ -107,16 +106,23 @@ const DashboardPage = () => {
         }).reverse();
         
         // Lấy dữ liệu đơn hàng trong 7 ngày gần đây
+        const revenueResponse = await axios.get(`${API_URL}/api/orders?hours_ago=168`, { // 7 ngày = 168 giờ
+          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+        });
+        
+        // Tạo dữ liệu biểu đồ doanh thu
         const revenueByDay = {};
         last7Days.forEach(day => {
           revenueByDay[day] = 0;
         });
         
-        // Tính tổng doanh thu theo ngày
-        ordersResponse.data.forEach(order => {
-          const orderDate = new Date(order.createdAt).toISOString().split('T')[0];
-          if (revenueByDay[orderDate] !== undefined && order.paymentStatus === 'paid') {
-            revenueByDay[orderDate] += parseFloat(order.totalAmount);
+        // Tính tổng doanh thu theo ngày từ tất cả đơn hàng đã thanh toán
+        revenueResponse.data.forEach(order => {
+          if (order.paymentStatus === 'paid') {
+            const orderDate = new Date(order.createdAt).toISOString().split('T')[0];
+            if (revenueByDay[orderDate] !== undefined) {
+              revenueByDay[orderDate] += parseFloat(order.totalAmount);
+            }
           }
         });
         
@@ -210,7 +216,7 @@ const DashboardPage = () => {
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
       
       <Grid container spacing={3} sx={{ mb: 3 }}>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid lg={3} md={6} xs={12}>
           <Paper sx={{ p: 2 }}>
             <Box sx={{ display: 'flex', alignItems: 'center' }}>
               <ReceiptIcon sx={{ fontSize: 40, color: 'primary.main', mr: 2 }} />
@@ -225,7 +231,7 @@ const DashboardPage = () => {
           </Paper>
         </Grid>
         
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid lg={3} md={6} xs={12}>
           <Paper sx={{ p: 2 }}>
             <Box sx={{ display: 'flex', alignItems: 'center' }}>
               <RestaurantIcon sx={{ fontSize: 40, color: 'secondary.main', mr: 2 }} />
@@ -240,7 +246,7 @@ const DashboardPage = () => {
           </Paper>
         </Grid>
         
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid lg={3} md={6} xs={12}>
           <Paper sx={{ p: 2 }}>
             <Box sx={{ display: 'flex', alignItems: 'center' }}>
               <PeopleIcon sx={{ fontSize: 40, color: 'info.main', mr: 2 }} />
@@ -252,7 +258,7 @@ const DashboardPage = () => {
           </Paper>
         </Grid>
         
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid lg={3} md={6} xs={12}>
           <Paper sx={{ p: 2 }}>
             <Box sx={{ display: 'flex', alignItems: 'center' }}>
               <TableBarIcon sx={{ fontSize: 40, color: 'warning.main', mr: 2 }} />
@@ -267,13 +273,13 @@ const DashboardPage = () => {
       
       {/* Thống kê lương */}
       <Grid container spacing={3} sx={{ mb: 3 }}>
-        <Grid item xs={12}>
+        <Grid xs={12}>
           <Typography variant="h5" gutterBottom>
             Thống kê lương nhân viên
           </Typography>
         </Grid>
         
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid lg={3} md={6} xs={12}>
           <Paper sx={{ p: 2 }}>
             <Box sx={{ display: 'flex', alignItems: 'center' }}>
               <MonetizationOnIcon sx={{ fontSize: 40, color: 'success.main', mr: 2 }} />
@@ -285,7 +291,7 @@ const DashboardPage = () => {
           </Paper>
         </Grid>
         
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid lg={3} md={6} xs={12}>
           <Paper sx={{ p: 2 }}>
             <Box sx={{ display: 'flex', alignItems: 'center' }}>
               <MonetizationOnIcon sx={{ fontSize: 40, color: 'warning.main', mr: 2 }} />
@@ -297,7 +303,7 @@ const DashboardPage = () => {
           </Paper>
         </Grid>
         
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid lg={3} md={6} xs={12}>
           <Paper sx={{ p: 2 }}>
             <Box sx={{ display: 'flex', alignItems: 'center' }}>
               <MonetizationOnIcon sx={{ fontSize: 40, color: 'info.main', mr: 2 }} />
@@ -309,7 +315,7 @@ const DashboardPage = () => {
           </Paper>
         </Grid>
         
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid lg={3} md={6} xs={12}>
           <Paper sx={{ p: 2 }}>
             <Box sx={{ display: 'flex', alignItems: 'center' }}>
               <PeopleIcon sx={{ fontSize: 40, color: 'primary.main', mr: 2 }} />
@@ -323,7 +329,7 @@ const DashboardPage = () => {
       </Grid>
       
       <Grid container spacing={3}>
-        <Grid item xs={12} md={6}>
+        <Grid md={6} xs={12}>
           <Card>
             <CardHeader title="Đơn hàng gần đây" />
             <Divider />
@@ -370,7 +376,7 @@ const DashboardPage = () => {
           </Card>
         </Grid>
         
-        <Grid item xs={12} md={6}>
+        <Grid md={6} xs={12}>
           <Card>
             <CardHeader title="Thống kê doanh thu" />
             <Divider />

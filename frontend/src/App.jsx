@@ -20,19 +20,26 @@ import FoodDetailPage from './pages/customer/FoodDetailPage';
 
 // Admin Pages
 import LoginPage from './pages/auth/LoginPage';
-import AdminDashboard from './pages/admin/DashboardPage';
-import MenuManagement from './pages/admin/MenuManagementPage';
-import TableManagement from './pages/admin/TableManagementPage';
-import UserManagement from './pages/admin/UserManagementPage';
-import OrderManagement from './pages/admin/OrderManagementPage';
+import AdminDashboardPage from './pages/admin/DashboardPage';
+import AdminTablePage from './pages/admin/TableManagementPage';
+import AdminUserPage from './pages/admin/UserManagementPage';
+import AdminOrderPage from './pages/admin/OrderManagementPage';
+import AdminReviewPage from './pages/admin/OrderManagementPage';
+import AdminPaymentPage from './pages/admin/PaymentManagementPage';
+import AdminPromotionPage from './pages/admin/PromotionManagementPage';
+import AdminRevenueAnalyticsPage from './pages/admin/RevenueAnalyticsPage';
+import AdminSalaryPage from './pages/admin/DashboardPage';
+import AdminInventoryPage from './pages/admin/InventoryManagementPage';
+import AdminReportPage from './pages/admin/InventoryReportsPage';
+import RecipeManagementPage from './pages/admin/RecipeManagementPage';
+import AdminShoppingPage from './pages/admin/PurchaseOrdersPage';
+import KitchenPermissionManagementPage from './pages/admin/KitchenPermissionManagementPage';
+import MenuManagementPage from './pages/admin/MenuManagementPage';
 import OrderDetailPage from './pages/admin/OrderDetailPage';
-import PaymentManagement from './pages/admin/PaymentManagementPage';
-import PromotionManagement from './pages/admin/PromotionManagementPage';
-import RevenueAnalytics from './pages/admin/RevenueAnalyticsPage';
-import AdminSalaryPage from './pages/AdminSalaryPage';
 
 // Kitchen Pages
-import KitchenDashboard from './pages/kitchen/DashboardPage';
+import KitchenDashboardPage from './pages/kitchen/DashboardPage';
+import KitchenInventoryPage from './pages/kitchen/InventoryPage';
 import MySalaryPage from './pages/MySalaryPage';
 
 // Waiter Pages
@@ -221,21 +228,28 @@ function App() {
 
               {/* Admin Routes */}
               <Route path="/admin" element={<AdminLayout />}>
-                <Route index element={<AdminDashboard />} />
-                <Route path="menu" element={<MenuManagement />} />
-                <Route path="tables" element={<TableManagement />} />
-                <Route path="users" element={<UserManagement />} />
-                <Route path="orders" element={<OrderManagement />} />
+                <Route index element={<AdminDashboardPage />} />
+                <Route path="menu" element={<MenuManagementPage />} />
+                <Route path="tables" element={<AdminTablePage />} />
+                <Route path="users" element={<AdminUserPage />} />
+                <Route path="orders" element={<AdminOrderPage />} />
                 <Route path="orders/:id" element={<OrderDetailPage />} />
-                <Route path="payments" element={<PaymentManagement />} />
-                <Route path="promotions" element={<PromotionManagement />} />
-                <Route path="analytics" element={<RevenueAnalytics />} />
+                <Route path="reviews" element={<AdminReviewPage />} />
+                <Route path="payments" element={<AdminPaymentPage />} />
+                <Route path="promotions" element={<AdminPromotionPage />} />
+                <Route path="analytics" element={<AdminRevenueAnalyticsPage />} />
                 <Route path="salaries" element={<AdminSalaryPage />} />
+                <Route path="inventory" element={<AdminInventoryPage />} />
+                <Route path="reports" element={<AdminReportPage />} />
+                <Route path="recipes" element={<RecipeManagementPage />} />
+                <Route path="shopping" element={<AdminShoppingPage />} />
+                <Route path="kitchen-permissions" element={<KitchenPermissionManagementPage />} />
               </Route>
 
               {/* Kitchen Routes */}
               <Route path="/kitchen" element={<KitchenLayout />}>
-                <Route index element={<KitchenDashboard />} />
+                <Route index element={<KitchenDashboardPage />} />
+                <Route path="inventory" element={<KitchenInventoryPage />} />
                 <Route path="salary" element={<MySalaryPage />} />
               </Route>
 

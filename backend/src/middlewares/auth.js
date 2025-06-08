@@ -47,9 +47,31 @@ const isWaiter = (req, res, next) => {
   }
 };
 
+// Middleware to authorize based on roles array
+const authorizeRoles = (roles) => {
+  return (req, res, next) => {
+    if (!req.user) {
+      return res.status(401).json({ message: 'Access denied. Not authenticated.' });
+    }
+    
+    if (roles.includes(req.user.role)) {
+      next();
+    } else {
+      res.status(403).json({ 
+        message: `Access denied. Required roles: ${roles.join(', ')}.` 
+      });
+    }
+  };
+};
+
+// Alias for JWT authentication
+const authenticateJWT = authenticateToken;
+
 module.exports = {
   authenticateToken,
+  authenticateJWT,
   isAdmin,
   isKitchen,
-  isWaiter
+  isWaiter,
+  authorizeRoles
 }; 
