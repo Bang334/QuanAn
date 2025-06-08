@@ -375,13 +375,7 @@ const MenuPage = () => {
               height: 40
             }}
           >
-            <Badge 
-              color="error" 
-              variant="dot" 
-              invisible={category === 'all' && priceRange[0] === 0 && priceRange[1] === maxPrice}
-            >
-              <FilterIcon />
-            </Badge>
+            <Badge color="error" variant="dot" invisible={category === 'all'}><FilterIcon /></Badge>
           </Fab>
         )}
       </Box>
@@ -421,59 +415,6 @@ const MenuPage = () => {
               <Tab key={key} label={displayName} value={key} icon={getCategoryIcon(displayName)} iconPosition="start" />
             ))}
           </Tabs>
-        </Paper>
-      )}
-
-      {!isMobile && (
-        <Paper elevation={1} sx={{ 
-          mb: 3, 
-          p: 2, 
-          borderRadius: { xs: 0, sm: 2 }, 
-          width: '98%', 
-          mx: 'auto',
-          display: 'flex',
-          flexDirection: 'column',
-          bgcolor: alpha(theme.palette.primary.main, 0.03)
-        }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-            <PriceIcon sx={{ mr: 1, color: theme.palette.primary.main }} />
-            <Typography variant="subtitle1" fontWeight="bold" color="primary.main">
-              Lọc theo khoảng giá
-            </Typography>
-          </Box>
-          
-          <Box sx={{ px: 2, mt: 2, width: '100%' }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-              <Typography variant="body2" color="text.secondary">
-                {formatPrice(priceRange[0])}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                {formatPrice(priceRange[1])}
-              </Typography>
-            </Box>
-            <Slider
-              value={priceRange}
-              onChange={handlePriceChange}
-              valueLabelDisplay="auto"
-              min={0}
-              max={maxPrice}
-              step={10000}
-              valueLabelFormat={(value) => formatPrice(value)}
-            />
-          </Box>
-          
-          <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1 }}>
-            <Button 
-              variant="text" 
-              color="primary" 
-              size="small"
-              onClick={() => setPriceRange([0, maxPrice])}
-              startIcon={<ClearIcon fontSize="small" />}
-              sx={{ textTransform: 'none' }}
-            >
-              Xóa bộ lọc giá
-            </Button>
-          </Box>
         </Paper>
       )}
 
@@ -607,53 +548,7 @@ const MenuPage = () => {
           )}
         </Box>
       ) : (
-        <Box sx={{ width: '100%', px: { xs: 0.5, sm: 1 }, marginLeft: '7px' }}>
-          {/* Active filters display */}
-          {(category !== 'all' || priceRange[0] > 0 || priceRange[1] < maxPrice) && (
-            <Box sx={{ 
-              display: 'flex', 
-              flexWrap: 'wrap', 
-              gap: 1, 
-              mb: 2, 
-              px: 1, 
-              alignItems: 'center' 
-            }}>
-              <Typography variant="body2" color="text.secondary">
-                Bộ lọc đang áp dụng:
-              </Typography>
-              
-              {category !== 'all' && (
-                <Chip 
-                  label={`Danh mục: ${categoryMap.get(category)}`} 
-                  size="small" 
-                  color="primary" 
-                  onDelete={() => setCategory('all')} 
-                  sx={{ fontWeight: 500 }}
-                />
-              )}
-              
-              {(priceRange[0] > 0 || priceRange[1] < maxPrice) && (
-                <Chip 
-                  label={`Giá: ${formatPrice(priceRange[0])} - ${formatPrice(priceRange[1])}`} 
-                  size="small" 
-                  color="primary" 
-                  onDelete={() => setPriceRange([0, maxPrice])} 
-                  sx={{ fontWeight: 500 }}
-                />
-              )}
-              
-              <Button 
-                size="small" 
-                variant="text" 
-                onClick={handleClearFilters} 
-                startIcon={<ClearIcon fontSize="small" />}
-                sx={{ ml: 'auto', textTransform: 'none' }}
-              >
-                Xóa tất cả
-              </Button>
-            </Box>
-          )}
-          
+        <Box sx={{ width: '100%', px: { xs: 0.5, sm: 1 },marginLeft: '7px' }}>
           <Grid container spacing={1} sx={{ width: '100%', m: 0 }}>
             {filteredItems.map((item, index) => (
               <Grid 

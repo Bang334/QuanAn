@@ -70,7 +70,6 @@ const MenuPage = () => {
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
   const [priceRange, setPriceRange] = useState([0, 1000000]);
-  const [maxPrice, setMaxPrice] = useState(1000000);
 
   const { addToCart, tableId, setTableId } = useCart();
   const navigate = useNavigate();
@@ -115,14 +114,6 @@ const MenuPage = () => {
           console.log('Validated items:', validatedItems);
           setMenuItems(validatedItems);
           console.log('Menu items state after update:', validatedItems);
-          
-          // Determine maximum price for the price range slider
-          if (validatedItems.length > 0) {
-            const maxItemPrice = Math.max(...validatedItems.map(item => item.price));
-            const roundedMaxPrice = Math.ceil(maxItemPrice / 10000) * 10000; // Round up to nearest 10,000
-            setMaxPrice(roundedMaxPrice);
-            setPriceRange([0, roundedMaxPrice]);
-          }
           
           setError(null);
         } else {
@@ -180,10 +171,6 @@ const MenuPage = () => {
 
   const handleClearSearch = () => {
     setSearchTerm('');
-  };
-
-  const handlePriceChange = (event, newValue) => {
-    setPriceRange(newValue);
   };
 
   const handleAddToCart = (item) => {
@@ -252,14 +239,6 @@ const MenuPage = () => {
 
   const handleViewDetails = (itemId) => {
     navigate(`/food/${itemId}`);
-  };
-
-  const handleClearFilters = () => {
-    setCategory('all');
-    setPriceRange([0, maxPrice]);
-    if (isMobile) {
-      setFilterDrawerOpen(false);
-    }
   };
 
   if (loading) {
@@ -375,13 +354,7 @@ const MenuPage = () => {
               height: 40
             }}
           >
-            <Badge 
-              color="error" 
-              variant="dot" 
-              invisible={category === 'all' && priceRange[0] === 0 && priceRange[1] === maxPrice}
-            >
-              <FilterIcon />
-            </Badge>
+            <Badge color="error" variant="dot" invisible={category === 'all'}><FilterIcon /></Badge>
           </Fab>
         )}
       </Box>
@@ -421,59 +394,6 @@ const MenuPage = () => {
               <Tab key={key} label={displayName} value={key} icon={getCategoryIcon(displayName)} iconPosition="start" />
             ))}
           </Tabs>
-        </Paper>
-      )}
-
-      {!isMobile && (
-        <Paper elevation={1} sx={{ 
-          mb: 3, 
-          p: 2, 
-          borderRadius: { xs: 0, sm: 2 }, 
-          width: '98%', 
-          mx: 'auto',
-          display: 'flex',
-          flexDirection: 'column',
-          bgcolor: alpha(theme.palette.primary.main, 0.03)
-        }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-            <PriceIcon sx={{ mr: 1, color: theme.palette.primary.main }} />
-            <Typography variant="subtitle1" fontWeight="bold" color="primary.main">
-              Lọc theo khoảng giá
-            </Typography>
-          </Box>
-          
-          <Box sx={{ px: 2, mt: 2, width: '100%' }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-              <Typography variant="body2" color="text.secondary">
-                {formatPrice(priceRange[0])}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                {formatPrice(priceRange[1])}
-              </Typography>
-            </Box>
-            <Slider
-              value={priceRange}
-              onChange={handlePriceChange}
-              valueLabelDisplay="auto"
-              min={0}
-              max={maxPrice}
-              step={10000}
-              valueLabelFormat={(value) => formatPrice(value)}
-            />
-          </Box>
-          
-          <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1 }}>
-            <Button 
-              variant="text" 
-              color="primary" 
-              size="small"
-              onClick={() => setPriceRange([0, maxPrice])}
-              startIcon={<ClearIcon fontSize="small" />}
-              sx={{ textTransform: 'none' }}
-            >
-              Xóa bộ lọc giá
-            </Button>
-          </Box>
         </Paper>
       )}
 
@@ -545,43 +465,6 @@ const MenuPage = () => {
             </ListItemButton>
           ))}
         </List>
-
-        <Divider sx={{ my: 2 }} />
-
-        <Box sx={{ p: 2, bgcolor: alpha(theme.palette.primary.main, 0.05) }}>
-          <Typography variant="h6" sx={{ mb: 0, fontWeight: 'bold', color: theme.palette.primary.main, display: 'flex', alignItems: 'center' }}>
-            <PriceIcon sx={{ mr: 1 }} /> Lọc theo giá
-          </Typography>
-        </Box>
-
-        <Box sx={{ px: 3, py: 3 }}>
-          <Typography variant="body2" gutterBottom>
-            Giá: {formatPrice(priceRange[0])} - {formatPrice(priceRange[1])}
-          </Typography>
-          <Slider
-            value={priceRange}
-            onChange={handlePriceChange}
-            valueLabelDisplay="auto"
-            min={0}
-            max={maxPrice}
-            step={10000}
-            valueLabelFormat={(value) => formatPrice(value)}
-            sx={{ mt: 3 }}
-          />
-        </Box>
-
-        <Box sx={{ px: 2, py: 1, display: 'flex', justifyContent: 'center' }}>
-          <Button 
-            variant="outlined" 
-            color="primary" 
-            onClick={handleClearFilters} 
-            startIcon={<ClearIcon />}
-            fullWidth
-            sx={{ borderRadius: 2 }}
-          >
-            Xóa bộ lọc
-          </Button>
-        </Box>
       </Drawer>
 
       {filteredItems.length === 0 ? (
@@ -607,53 +490,7 @@ const MenuPage = () => {
           )}
         </Box>
       ) : (
-        <Box sx={{ width: '100%', px: { xs: 0.5, sm: 1 }, marginLeft: '7px' }}>
-          {/* Active filters display */}
-          {(category !== 'all' || priceRange[0] > 0 || priceRange[1] < maxPrice) && (
-            <Box sx={{ 
-              display: 'flex', 
-              flexWrap: 'wrap', 
-              gap: 1, 
-              mb: 2, 
-              px: 1, 
-              alignItems: 'center' 
-            }}>
-              <Typography variant="body2" color="text.secondary">
-                Bộ lọc đang áp dụng:
-              </Typography>
-              
-              {category !== 'all' && (
-                <Chip 
-                  label={`Danh mục: ${categoryMap.get(category)}`} 
-                  size="small" 
-                  color="primary" 
-                  onDelete={() => setCategory('all')} 
-                  sx={{ fontWeight: 500 }}
-                />
-              )}
-              
-              {(priceRange[0] > 0 || priceRange[1] < maxPrice) && (
-                <Chip 
-                  label={`Giá: ${formatPrice(priceRange[0])} - ${formatPrice(priceRange[1])}`} 
-                  size="small" 
-                  color="primary" 
-                  onDelete={() => setPriceRange([0, maxPrice])} 
-                  sx={{ fontWeight: 500 }}
-                />
-              )}
-              
-              <Button 
-                size="small" 
-                variant="text" 
-                onClick={handleClearFilters} 
-                startIcon={<ClearIcon fontSize="small" />}
-                sx={{ ml: 'auto', textTransform: 'none' }}
-              >
-                Xóa tất cả
-              </Button>
-            </Box>
-          )}
-          
+        <Box sx={{ width: '100%', px: { xs: 0.5, sm: 1 },marginLeft: '7px' }}>
           <Grid container spacing={1} sx={{ width: '100%', m: 0 }}>
             {filteredItems.map((item, index) => (
               <Grid 

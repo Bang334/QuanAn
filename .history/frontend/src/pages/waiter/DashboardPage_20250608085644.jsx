@@ -254,7 +254,7 @@ const DashboardPage = () => {
 
   return (
     <Box>
-      <Typography variant="h4" component="div" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
+      <Typography variant="h4" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
         <RestaurantIcon sx={{ mr: 1 }} />
         Tổng quan phục vụ
       </Typography>
@@ -267,10 +267,10 @@ const DashboardPage = () => {
               <Avatar sx={{ bgcolor: theme.palette.info.main, width: 56, height: 56, mb: 2 }}>
                 <RestaurantMenuIcon fontSize="large" />
               </Avatar>
-              <Typography variant="h3" component="div" color="text.primary" fontWeight="bold">
+              <Typography variant="h3" color="text.primary" fontWeight="bold">
                 {stats.readyItems}
               </Typography>
-              <Typography variant="body2" component="div" color="text.secondary">
+              <Typography variant="body2" color="text.secondary">
                 Món ăn sẵn sàng phục vụ
               </Typography>
             </CardContent>
@@ -283,10 +283,10 @@ const DashboardPage = () => {
               <Avatar sx={{ bgcolor: theme.palette.error.main, width: 56, height: 56, mb: 2 }}>
                 <MoneyIcon fontSize="large" />
               </Avatar>
-              <Typography variant="h3" component="div" color="text.primary" fontWeight="bold">
+              <Typography variant="h3" color="text.primary" fontWeight="bold">
                 {stats.paymentRequests}
               </Typography>
-              <Typography variant="body2" component="div" color="text.secondary">
+              <Typography variant="body2" color="text.secondary">
                 Yêu cầu thanh toán
               </Typography>
             </CardContent>
@@ -299,10 +299,10 @@ const DashboardPage = () => {
               <Avatar sx={{ bgcolor: theme.palette.success.main, width: 56, height: 56, mb: 2 }}>
                 <TableRestaurantIcon fontSize="large" />
               </Avatar>
-              <Typography variant="h3" component="div" color="text.primary" fontWeight="bold">
+              <Typography variant="h3" color="text.primary" fontWeight="bold">
                 {stats.tablesAvailable}
               </Typography>
-              <Typography variant="body2" component="div" color="text.secondary">
+              <Typography variant="body2" color="text.secondary">
                 Bàn trống
               </Typography>
             </CardContent>
@@ -315,10 +315,10 @@ const DashboardPage = () => {
               <Avatar sx={{ bgcolor: theme.palette.primary.main, width: 56, height: 56, mb: 2 }}>
                 <DirectionsRunIcon fontSize="large" />
               </Avatar>
-              <Typography variant="h3" component="div" color="text.primary" fontWeight="bold">
+              <Typography variant="h3" color="text.primary" fontWeight="bold">
                 {stats.pendingOrders}
               </Typography>
-              <Typography variant="body2" component="div" color="text.secondary">
+              <Typography variant="body2" color="text.secondary">
                 Đơn chờ xác nhận
               </Typography>
             </CardContent>
@@ -327,7 +327,7 @@ const DashboardPage = () => {
       </Grid>
       
       {/* Table Status Overview */}
-      <Typography variant="h5" component="div" sx={{ mt: 4, mb: 2, display: 'flex', alignItems: 'center' }}>
+      <Typography variant="h5" sx={{ mt: 4, mb: 2, display: 'flex', alignItems: 'center' }}>
         <TableRestaurantIcon sx={{ mr: 1 }} />
         Tình trạng bàn
       </Typography>
@@ -344,7 +344,7 @@ const DashboardPage = () => {
                 borderTop: `4px solid ${theme.palette[getTableStatusColor(table.status)]?.main || theme.palette.grey[500]}`
               }}
             >
-              <Typography variant="h6" component="div" fontWeight="bold">
+              <Typography variant="h6" fontWeight="bold">
                 Bàn {table.name}
               </Typography>
               <Chip 
@@ -408,10 +408,10 @@ const DashboardPage = () => {
                 >
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2, alignItems: 'center' }}>
                     <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                      <Avatar sx={{ bgcolor: theme.palette[getStatusColor(order.status)]?.main || theme.palette.grey[500], mr: 1 }}>
+                      <Avatar sx={{ bgcolor: theme.palette[getStatusColor(order.status)].main, mr: 1 }}>
                         <Typography variant="body2" component="div">{order.tableId}</Typography>
                       </Avatar>
-                      <Typography variant="h6" component="div">
+                      <Typography variant="h6">
                         Đơn #{order.id}
                       </Typography>
                     </Box>
@@ -422,7 +422,7 @@ const DashboardPage = () => {
                     />
                   </Box>
                   
-                  <Typography variant="body2" component="div" color="text.secondary" gutterBottom>
+                  <Typography variant="body2" color="text.secondary" gutterBottom>
                     Thời gian: {formatDateTime(order.createdAt)}
                   </Typography>
                   
@@ -442,11 +442,7 @@ const DashboardPage = () => {
                           px: 1, 
                           py: 0.5, 
                           borderLeft: item.status === 'ready' ? `4px solid ${theme.palette.info.main}` : 'none',
-                          bgcolor: item.status === 'ready' ? alpha(theme.palette.info.main, 0.05) : 'transparent',
-                          '& .MuiListItemSecondaryAction-root': {
-                            right: 8,
-                          },
-                          pr: item.status === 'ready' ? '100px' : 'auto'
+                          bgcolor: item.status === 'ready' ? alpha(theme.palette.info.main, 0.05) : 'transparent'
                         }}
                         secondaryAction={
                           item.status === 'ready' && (
@@ -471,7 +467,7 @@ const DashboardPage = () => {
                         </ListItemAvatar>
                         <ListItemText
                           primary={
-                            <Box sx={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', pr: 1 }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center' }}>
                               <Typography variant="body2" component="div" fontWeight={item.status === 'ready' ? 'bold' : 'normal'}>
                                 {item.MenuItem.name} x{item.quantity}
                               </Typography>
@@ -484,20 +480,13 @@ const DashboardPage = () => {
                             </Box>
                           }
                           secondary={item.notes}
-                          sx={{ 
-                            mr: 1,
-                            '& .MuiTypography-root': { 
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis'
-                            } 
-                          }}
                         />
                       </ListItem>
                     ))}
                   </List>
                   
                   <Box sx={{ mt: 2, display: 'flex', justifyContent: 'space-between', gap: 1, alignItems: 'center' }}>
-                    <Typography variant="body2" component="div">
+                    <Typography variant="body2">
                       Tổng: <strong>{order.OrderItems.reduce((sum, item) => sum + item.quantity, 0)} món</strong>
                     </Typography>
                     

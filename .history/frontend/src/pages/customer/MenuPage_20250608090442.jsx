@@ -607,53 +607,7 @@ const MenuPage = () => {
           )}
         </Box>
       ) : (
-        <Box sx={{ width: '100%', px: { xs: 0.5, sm: 1 }, marginLeft: '7px' }}>
-          {/* Active filters display */}
-          {(category !== 'all' || priceRange[0] > 0 || priceRange[1] < maxPrice) && (
-            <Box sx={{ 
-              display: 'flex', 
-              flexWrap: 'wrap', 
-              gap: 1, 
-              mb: 2, 
-              px: 1, 
-              alignItems: 'center' 
-            }}>
-              <Typography variant="body2" color="text.secondary">
-                Bộ lọc đang áp dụng:
-              </Typography>
-              
-              {category !== 'all' && (
-                <Chip 
-                  label={`Danh mục: ${categoryMap.get(category)}`} 
-                  size="small" 
-                  color="primary" 
-                  onDelete={() => setCategory('all')} 
-                  sx={{ fontWeight: 500 }}
-                />
-              )}
-              
-              {(priceRange[0] > 0 || priceRange[1] < maxPrice) && (
-                <Chip 
-                  label={`Giá: ${formatPrice(priceRange[0])} - ${formatPrice(priceRange[1])}`} 
-                  size="small" 
-                  color="primary" 
-                  onDelete={() => setPriceRange([0, maxPrice])} 
-                  sx={{ fontWeight: 500 }}
-                />
-              )}
-              
-              <Button 
-                size="small" 
-                variant="text" 
-                onClick={handleClearFilters} 
-                startIcon={<ClearIcon fontSize="small" />}
-                sx={{ ml: 'auto', textTransform: 'none' }}
-              >
-                Xóa tất cả
-              </Button>
-            </Box>
-          )}
-          
+        <Box sx={{ width: '100%', px: { xs: 0.5, sm: 1 },marginLeft: '7px' }}>
           <Grid container spacing={1} sx={{ width: '100%', m: 0 }}>
             {filteredItems.map((item, index) => (
               <Grid 

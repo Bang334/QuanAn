@@ -327,7 +327,7 @@ const DashboardPage = () => {
       </Grid>
       
       {/* Table Status Overview */}
-      <Typography variant="h5" component="div" sx={{ mt: 4, mb: 2, display: 'flex', alignItems: 'center' }}>
+      <Typography variant="h5" sx={{ mt: 4, mb: 2, display: 'flex', alignItems: 'center' }}>
         <TableRestaurantIcon sx={{ mr: 1 }} />
         Tình trạng bàn
       </Typography>
@@ -344,7 +344,7 @@ const DashboardPage = () => {
                 borderTop: `4px solid ${theme.palette[getTableStatusColor(table.status)]?.main || theme.palette.grey[500]}`
               }}
             >
-              <Typography variant="h6" component="div" fontWeight="bold">
+              <Typography variant="h6" fontWeight="bold">
                 Bàn {table.name}
               </Typography>
               <Chip 
@@ -411,7 +411,7 @@ const DashboardPage = () => {
                       <Avatar sx={{ bgcolor: theme.palette[getStatusColor(order.status)]?.main || theme.palette.grey[500], mr: 1 }}>
                         <Typography variant="body2" component="div">{order.tableId}</Typography>
                       </Avatar>
-                      <Typography variant="h6" component="div">
+                      <Typography variant="h6">
                         Đơn #{order.id}
                       </Typography>
                     </Box>
@@ -422,7 +422,7 @@ const DashboardPage = () => {
                     />
                   </Box>
                   
-                  <Typography variant="body2" component="div" color="text.secondary" gutterBottom>
+                  <Typography variant="body2" color="text.secondary" gutterBottom>
                     Thời gian: {formatDateTime(order.createdAt)}
                   </Typography>
                   
@@ -442,11 +442,7 @@ const DashboardPage = () => {
                           px: 1, 
                           py: 0.5, 
                           borderLeft: item.status === 'ready' ? `4px solid ${theme.palette.info.main}` : 'none',
-                          bgcolor: item.status === 'ready' ? alpha(theme.palette.info.main, 0.05) : 'transparent',
-                          '& .MuiListItemSecondaryAction-root': {
-                            right: 8,
-                          },
-                          pr: item.status === 'ready' ? '100px' : 'auto'
+                          bgcolor: item.status === 'ready' ? alpha(theme.palette.info.main, 0.05) : 'transparent'
                         }}
                         secondaryAction={
                           item.status === 'ready' && (
@@ -471,7 +467,7 @@ const DashboardPage = () => {
                         </ListItemAvatar>
                         <ListItemText
                           primary={
-                            <Box sx={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', pr: 1 }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center' }}>
                               <Typography variant="body2" component="div" fontWeight={item.status === 'ready' ? 'bold' : 'normal'}>
                                 {item.MenuItem.name} x{item.quantity}
                               </Typography>
@@ -484,13 +480,6 @@ const DashboardPage = () => {
                             </Box>
                           }
                           secondary={item.notes}
-                          sx={{ 
-                            mr: 1,
-                            '& .MuiTypography-root': { 
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis'
-                            } 
-                          }}
                         />
                       </ListItem>
                     ))}

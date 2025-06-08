@@ -442,11 +442,7 @@ const DashboardPage = () => {
                           px: 1, 
                           py: 0.5, 
                           borderLeft: item.status === 'ready' ? `4px solid ${theme.palette.info.main}` : 'none',
-                          bgcolor: item.status === 'ready' ? alpha(theme.palette.info.main, 0.05) : 'transparent',
-                          '& .MuiListItemSecondaryAction-root': {
-                            right: 8,
-                          },
-                          pr: item.status === 'ready' ? '100px' : 'auto'
+                          bgcolor: item.status === 'ready' ? alpha(theme.palette.info.main, 0.05) : 'transparent'
                         }}
                         secondaryAction={
                           item.status === 'ready' && (
@@ -471,7 +467,7 @@ const DashboardPage = () => {
                         </ListItemAvatar>
                         <ListItemText
                           primary={
-                            <Box sx={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', pr: 1 }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center' }}>
                               <Typography variant="body2" component="div" fontWeight={item.status === 'ready' ? 'bold' : 'normal'}>
                                 {item.MenuItem.name} x{item.quantity}
                               </Typography>
@@ -484,13 +480,6 @@ const DashboardPage = () => {
                             </Box>
                           }
                           secondary={item.notes}
-                          sx={{ 
-                            mr: 1,
-                            '& .MuiTypography-root': { 
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis'
-                            } 
-                          }}
                         />
                       </ListItem>
                     ))}
