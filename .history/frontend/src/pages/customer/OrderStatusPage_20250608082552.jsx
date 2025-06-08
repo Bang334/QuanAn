@@ -63,38 +63,22 @@ const OrderStatusPage = () => {
     const fetchOrder = async () => {
       try {
         setLoading(true);
+        const response = await axios.get(`${API_URL}/api/orders/${orderId}`);
         
-        // Lấy thông tin bàn để biết thời gian cập nhật cuối cùng
-        const tableResponse = await axios.get(`${API_URL}/api/tables/${tableId}`);
-        const tableInfo = tableResponse.data;
-        const tableLastUpdated = new Date(tableInfo.updatedAt);
+        // If order items don't have images, add placeholder URLs
+        const orderWithImagesIfNeeded = {
+          ...response.data,
+          OrderItems: response.data.OrderItems.map(item => ({
+            ...item,
+            MenuItem: item.MenuItem ? {
+              ...item.MenuItem,
+              image: item.MenuItem.image || `https://source.unsplash.com/featured/?${encodeURIComponent(item.MenuItem?.name || 'food')}`
+            } : null
+          }))
+        };
         
-        // Lấy thông tin đơn hàng
-        const orderResponse = await axios.get(`${API_URL}/api/orders/${orderId}`);
-        const orderData = orderResponse.data;
-        const orderCreatedAt = new Date(orderData.createdAt);
-        
-        // Kiểm tra nếu đơn hàng thuộc về khách hàng hiện tại
-        if (orderData.tableId === parseInt(tableId) && orderCreatedAt >= tableLastUpdated) {
-          // If order items don't have images, add placeholder URLs
-          const orderWithImagesIfNeeded = {
-            ...orderData,
-            OrderItems: orderData.OrderItems.map(item => ({
-              ...item,
-              MenuItem: item.MenuItem ? {
-                ...item.MenuItem,
-                image: item.MenuItem.image || `https://source.unsplash.com/featured/?${encodeURIComponent(item.MenuItem?.name || 'food')}`
-              } : null
-            }))
-          };
-          
-          setOrder(orderWithImagesIfNeeded);
-          setError(null);
-        } else {
-          // Đơn hàng không thuộc về khách hàng hiện tại
-          setOrder(null);
-          setError('Đơn hàng này không thuộc về bạn hoặc không còn tồn tại.');
-        }
+        setOrder(orderWithImagesIfNeeded);
+        setError(null);
       } catch (err) {
         console.error('Error fetching order:', err);
         setError('Không thể tải thông tin đơn hàng. Vui lòng thử lại sau.');
@@ -563,66 +547,34 @@ const OrderStatusPage = () => {
             justifyContent: 'space-between', 
             mt: 3,
             width: '100%',
-            px: { xs: 2, sm: 0 },
             flexDirection: { xs: 'column', sm: 'row' },
-            gap: { xs: 2, sm: 0 }
+            gap: { xs: 1, sm: 0 },
+            px: { xs: 2, sm: 0 },
+            pb: { xs: 2, sm: 0 }
           }}
         >
           <Button 
             variant="outlined"
-            onClick={() => navigate('/menu')}
-            sx={{ flex: 1, mr: { sm: 2 } }}
+            onClick={() => navigate('/order')}
+            startIcon={<ArrowBackIcon />}
+            sx={{ mb: { xs: 1, sm: 0 } }}
+            fullWidth={!!(window.innerWidth < 600)}
           >
-            Xem thực đơn
+            Quay lại danh sách đơn hàng
           </Button>
           
-          {/* Chỉ hiển thị nút hủy đơn khi đơn hàng ở trạng thái pending */}
-          {order.status === 'pending' && (
+          {order.status === 'served' && (
             <Button 
-              variant="outlined"
-              color="error"
-              startIcon={<CancelIcon />}
-              onClick={() => setOpenCancelDialog(true)}
-              sx={{ flex: 1 }}
-            >
-              Hủy đơn hàng
-            </Button>
-          )}
-          
-          {/* Hiển thị nút yêu cầu thanh toán nếu tất cả món ăn đã được phục vụ */}
-          {order.OrderItems.every(item => item.status === 'served') && 
-           order.status !== 'payment_requested' && 
-           order.status !== 'paid' && (
-            <Button 
-              variant="contained"
+              variant="contained" 
               color="primary"
               onClick={handleRequestPayment}
-              sx={{ flex: 1, ml: { sm: 2 } }}
+              fullWidth={!!(window.innerWidth < 600)}
             >
               Yêu cầu thanh toán
             </Button>
           )}
         </Box>
       </Box>
-      
-      {/* Dialog xác nhận hủy đơn hàng */}
-      <Dialog
-        open={openCancelDialog}
-        onClose={() => setOpenCancelDialog(false)}
-      >
-        <DialogTitle>Xác nhận hủy đơn hàng</DialogTitle>
-        <DialogContent>
-          <DialogContentText>
-            Bạn có chắc chắn muốn hủy đơn hàng này? Hành động này không thể hoàn tác.
-          </DialogContentText>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpenCancelDialog(false)}>Không</Button>
-          <Button onClick={handleCancelOrder} color="error" variant="contained" autoFocus>
-            Xác nhận hủy
-          </Button>
-        </DialogActions>
-      </Dialog>
     </Box>
   );
 };

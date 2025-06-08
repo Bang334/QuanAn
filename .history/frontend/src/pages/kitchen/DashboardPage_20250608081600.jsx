@@ -380,6 +380,18 @@ const DashboardPage = () => {
                               Hoàn thành
                             </Button>
                           )}
+                          
+                          {item.status === 'ready' && (
+                            <Button 
+                              size="small" 
+                              variant="outlined" 
+                              color="warning"
+                              onClick={() => handleUpdateItemStatus(order.id, item.id, 'cooking')}
+                              sx={{ fontSize: { xs: '0.7rem', sm: '0.8rem' } }}
+                            >
+                              Đánh dấu chưa hoàn thành
+                            </Button>
+                          )}
                         </CardActions>
                       </Card>
                     ))}

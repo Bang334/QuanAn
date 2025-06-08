@@ -477,18 +477,16 @@ const TableServicePage = () => {
                         </Button>
                       ) : null}
                       
-                      {/* Nút xem danh sách đơn hàng của bàn - chỉ hiển thị khi bàn có khách */}
-                      {table.status === 'occupied' && (
-                        <Button
-                          size="small"
-                          variant="outlined"
-                          color="info"
-                          startIcon={<FormatListBulletedIcon />}
-                          onClick={() => handleViewTableOrders(table.id)}
-                        >
-                          Xem đơn hàng
-                        </Button>
-                      )}
+                      {/* Nút xem danh sách đơn hàng của bàn */}
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        color="info"
+                        startIcon={<FormatListBulletedIcon />}
+                        onClick={() => handleViewTableOrders(table.id)}
+                      >
+                        Xem đơn hàng
+                      </Button>
                     </Box>
                   </TableCell>
                 </TableRow>
@@ -634,7 +632,7 @@ const TableServicePage = () => {
         <DialogTitle>
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <Typography variant="h6">
-              {selectedTable ? `Đơn hàng của khách hiện tại - Bàn ${selectedTable.name}` : 'Danh sách đơn hàng hiện tại'}
+              {selectedTable ? `Đơn hàng của bàn ${selectedTable.name}` : 'Danh sách đơn hàng'}
             </Typography>
             <IconButton onClick={handleCloseOrdersDialog} size="small">
               <CloseIcon />
@@ -644,7 +642,7 @@ const TableServicePage = () => {
         <DialogContent dividers>
           {tableOrders.length === 0 ? (
             <Typography align="center" color="text.secondary" py={2}>
-              Không có đơn hàng nào của khách hiện tại. Có thể bàn vừa được cập nhật trạng thái khi có khách mới.
+              Không có đơn hàng nào
             </Typography>
           ) : (
             <List>
@@ -672,20 +670,6 @@ const TableServicePage = () => {
                     <List dense>
                       {order.OrderItems?.map((item) => (
                         <ListItem key={item.id} sx={{ py: 0.5 }}>
-                          <Box sx={{ 
-                            width: 50, 
-                            height: 50, 
-                            borderRadius: 1, 
-                            overflow: 'hidden', 
-                            mr: 1.5,
-                            flexShrink: 0 
-                          }}>
-                            <img 
-                              src={item.MenuItem?.image || `https://via.placeholder.com/50x50?text=${encodeURIComponent(item.MenuItem?.name || 'Món ăn')}`}
-                              alt={item.MenuItem?.name || 'Món ăn'}
-                              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                            />
-                          </Box>
                           <ListItemText
                             primary={
                               <Box sx={{ display: 'flex', alignItems: 'center' }}>

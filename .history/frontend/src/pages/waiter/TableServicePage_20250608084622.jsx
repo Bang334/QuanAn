@@ -477,18 +477,16 @@ const TableServicePage = () => {
                         </Button>
                       ) : null}
                       
-                      {/* Nút xem danh sách đơn hàng của bàn - chỉ hiển thị khi bàn có khách */}
-                      {table.status === 'occupied' && (
-                        <Button
-                          size="small"
-                          variant="outlined"
-                          color="info"
-                          startIcon={<FormatListBulletedIcon />}
-                          onClick={() => handleViewTableOrders(table.id)}
-                        >
-                          Xem đơn hàng
-                        </Button>
-                      )}
+                      {/* Nút xem danh sách đơn hàng của bàn */}
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        color="info"
+                        startIcon={<FormatListBulletedIcon />}
+                        onClick={() => handleViewTableOrders(table.id)}
+                      >
+                        Xem đơn hàng
+                      </Button>
                     </Box>
                   </TableCell>
                 </TableRow>

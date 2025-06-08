@@ -63,38 +63,22 @@ const OrderStatusPage = () => {
     const fetchOrder = async () => {
       try {
         setLoading(true);
+        const response = await axios.get(`${API_URL}/api/orders/${orderId}`);
         
-        // Lấy thông tin bàn để biết thời gian cập nhật cuối cùng
-        const tableResponse = await axios.get(`${API_URL}/api/tables/${tableId}`);
-        const tableInfo = tableResponse.data;
-        const tableLastUpdated = new Date(tableInfo.updatedAt);
+        // If order items don't have images, add placeholder URLs
+        const orderWithImagesIfNeeded = {
+          ...response.data,
+          OrderItems: response.data.OrderItems.map(item => ({
+            ...item,
+            MenuItem: item.MenuItem ? {
+              ...item.MenuItem,
+              image: item.MenuItem.image || `https://source.unsplash.com/featured/?${encodeURIComponent(item.MenuItem?.name || 'food')}`
+            } : null
+          }))
+        };
         
-        // Lấy thông tin đơn hàng
-        const orderResponse = await axios.get(`${API_URL}/api/orders/${orderId}`);
-        const orderData = orderResponse.data;
-        const orderCreatedAt = new Date(orderData.createdAt);
-        
-        // Kiểm tra nếu đơn hàng thuộc về khách hàng hiện tại
-        if (orderData.tableId === parseInt(tableId) && orderCreatedAt >= tableLastUpdated) {
-          // If order items don't have images, add placeholder URLs
-          const orderWithImagesIfNeeded = {
-            ...orderData,
-            OrderItems: orderData.OrderItems.map(item => ({
-              ...item,
-              MenuItem: item.MenuItem ? {
-                ...item.MenuItem,
-                image: item.MenuItem.image || `https://source.unsplash.com/featured/?${encodeURIComponent(item.MenuItem?.name || 'food')}`
-              } : null
-            }))
-          };
-          
-          setOrder(orderWithImagesIfNeeded);
-          setError(null);
-        } else {
-          // Đơn hàng không thuộc về khách hàng hiện tại
-          setOrder(null);
-          setError('Đơn hàng này không thuộc về bạn hoặc không còn tồn tại.');
-        }
+        setOrder(orderWithImagesIfNeeded);
+        setError(null);
       } catch (err) {
         console.error('Error fetching order:', err);
         setError('Không thể tải thông tin đơn hàng. Vui lòng thử lại sau.');

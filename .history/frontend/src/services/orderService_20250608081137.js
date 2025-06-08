@@ -142,22 +142,6 @@ const orderService = {
       console.error(`Error processing payment for order ${orderId}:`, error);
       throw error;
     }
-  },
-  
-  // Cancel an order (for customer)
-  cancelOrder: async (orderId) => {
-    try {
-      const response = await axios.put(
-        `${API_URL}/api/orders/${orderId}/cancel`,
-        {},
-        { headers: getAuthHeader() }
-      );
-      
-      return response.data;
-    } catch (error) {
-      console.error(`Error cancelling order ${orderId}:`, error);
-      throw error;
-    }
   }
 };
 

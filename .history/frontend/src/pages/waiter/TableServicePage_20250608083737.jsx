@@ -30,8 +30,7 @@ import {
   List,
   ListItem,
   ListItemText,
-  Collapse,
-  ListItemSecondaryAction
+  Collapse
 } from '@mui/material';
 import {
   CheckCircle as CheckCircleIcon,
@@ -40,9 +39,7 @@ import {
   ExpandMore as ExpandMoreIcon,
   ExpandLess as ExpandLessIcon,
   ExitToApp as ExitToAppIcon,
-  PersonAdd as PersonAddIcon,
-  FormatListBulleted as FormatListBulletedIcon,
-  Close as CloseIcon
+  PersonAdd as PersonAddIcon
 } from '@mui/icons-material';
 import axios from 'axios';
 import { API_URL } from '../../config';
@@ -61,8 +58,6 @@ const TableServicePage = () => {
     severity: 'success'
   });
   const [expandedTable, setExpandedTable] = useState(null);
-  const [openOrdersDialog, setOpenOrdersDialog] = useState(false);
-  const [tableOrders, setTableOrders] = useState([]);
 
   useEffect(() => {
     fetchTables();
@@ -165,74 +160,6 @@ const TableServicePage = () => {
     });
   };
 
-  const handleViewTableOrders = async (tableId) => {
-    try {
-      setLoading(true);
-      
-      // Lấy thông tin bàn để biết thời gian cập nhật
-      const tableResponse = await axios.get(
-        `${API_URL}/api/tables/${tableId}`,
-        { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
-      );
-      const tableInfo = tableResponse.data;
-      const tableLastUpdated = new Date(tableInfo.updatedAt);
-      
-      // Lấy tất cả đơn hàng của bàn
-      const ordersResponse = await axios.get(
-        `${API_URL}/api/orders/table/${tableId}`, 
-        { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
-      );
-      
-      // Lọc chỉ lấy đơn hàng có thời gian tạo sau khi bàn được cập nhật trạng thái
-      const currentCustomerOrders = ordersResponse.data.filter(order => {
-        const orderCreatedAt = new Date(order.createdAt);
-        return orderCreatedAt >= tableLastUpdated;
-      });
-      
-      // Sắp xếp đơn hàng theo thời gian tạo, mới nhất lên đầu
-      const sortedOrders = currentCustomerOrders.sort((a, b) => 
-        new Date(b.createdAt) - new Date(a.createdAt)
-      );
-      
-      setTableOrders(sortedOrders);
-      setSelectedTable(tableInfo);
-      setOpenOrdersDialog(true);
-      setLoading(false);
-    } catch (error) {
-      console.error('Error fetching table orders:', error);
-      setSnackbar({
-        open: true,
-        message: 'Lỗi khi tải danh sách đơn hàng',
-        severity: 'error'
-      });
-      setLoading(false);
-    }
-  };
-
-  const handleCloseOrdersDialog = () => {
-    setOpenOrdersDialog(false);
-    setTableOrders([]);
-    setSelectedTable(null);
-  };
-
-  const formatDateTime = (dateString) => {
-    const date = new Date(dateString);
-    return date.toLocaleString('vi-VN', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
-
-  const formatPrice = (price) => {
-    return new Intl.NumberFormat('vi-VN', { 
-      style: 'currency', 
-      currency: 'VND' 
-    }).format(price);
-  };
-
   const getTableStatusColor = (status) => {
     switch (status) {
       case 'available': return 'success';
@@ -314,30 +241,6 @@ const TableServicePage = () => {
 
   const handleTableStatusChange = async (tableId, newStatus) => {
     try {
-      // Nếu đang chuyển sang trạng thái available, kiểm tra tất cả đơn hàng
-      if (newStatus === 'available') {
-        // Lấy thông tin tất cả đơn hàng của bàn
-        const ordersResponse = await axios.get(
-          `${API_URL}/api/orders/table/${tableId}?status=active`, 
-          { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
-        );
-        
-        // Kiểm tra xem còn đơn hàng nào chưa hoàn thành hoặc chưa hủy không
-        const activeOrders = ordersResponse.data.filter(
-          order => !['completed', 'cancelled'].includes(order.status)
-        );
-        
-        if (activeOrders.length > 0) {
-          setSnackbar({
-            open: true,
-            message: 'Không thể cập nhật trạng thái bàn. Vẫn còn đơn hàng chưa hoàn thành.',
-            severity: 'error'
-          });
-          return;
-        }
-      }
-      
-      // Nếu không có vấn đề, tiến hành cập nhật trạng thái bàn
       await axios.put(
         `${API_URL}/api/tables/${tableId}/status`,
         { status: newStatus },
@@ -452,44 +355,6 @@ const TableServicePage = () => {
                         )}
                       </Box>
                     )}
-                    
-                    {/* Nút chuyển trạng thái bàn */}
-                    <Box sx={{ display: 'flex', gap: 1, mt: table.order ? 1 : 0 }}>
-                      {table.status === 'occupied' ? (
-                        <Button 
-                          size="small" 
-                          variant="outlined" 
-                          color="success"
-                          startIcon={<ExitToAppIcon />}
-                          onClick={() => handleTableStatusChange(table.id, 'available')}
-                        >
-                          Khách ra về
-                        </Button>
-                      ) : table.status === 'available' ? (
-                        <Button 
-                          size="small" 
-                          variant="outlined" 
-                          color="primary"
-                          startIcon={<PersonAddIcon />}
-                          onClick={() => handleTableStatusChange(table.id, 'occupied')}
-                        >
-                          Có khách mới
-                        </Button>
-                      ) : null}
-                      
-                      {/* Nút xem danh sách đơn hàng của bàn - chỉ hiển thị khi bàn có khách */}
-                      {table.status === 'occupied' && (
-                        <Button
-                          size="small"
-                          variant="outlined"
-                          color="info"
-                          startIcon={<FormatListBulletedIcon />}
-                          onClick={() => handleViewTableOrders(table.id)}
-                        >
-                          Xem đơn hàng
-                        </Button>
-                      )}
-                    </Box>
                   </TableCell>
                 </TableRow>
                 
@@ -623,111 +488,6 @@ const TableServicePage = () => {
           {snackbar.message}
         </Alert>
       </Snackbar>
-      
-      {/* Dialog hiển thị danh sách đơn hàng của bàn */}
-      <Dialog 
-        open={openOrdersDialog} 
-        onClose={handleCloseOrdersDialog}
-        maxWidth="md"
-        fullWidth
-      >
-        <DialogTitle>
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <Typography variant="h6">
-              {selectedTable ? `Đơn hàng của khách hiện tại - Bàn ${selectedTable.name}` : 'Danh sách đơn hàng hiện tại'}
-            </Typography>
-            <IconButton onClick={handleCloseOrdersDialog} size="small">
-              <CloseIcon />
-            </IconButton>
-          </Box>
-        </DialogTitle>
-        <DialogContent dividers>
-          {tableOrders.length === 0 ? (
-            <Typography align="center" color="text.secondary" py={2}>
-              Không có đơn hàng nào của khách hiện tại. Có thể bàn vừa được cập nhật trạng thái khi có khách mới.
-            </Typography>
-          ) : (
-            <List>
-              {tableOrders.map((order) => (
-                <Paper key={order.id} elevation={1} sx={{ mb: 2, overflow: 'hidden' }}>
-                  <Box sx={{ p: 2, bgcolor: 'background.default' }}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                      <Typography variant="subtitle1" fontWeight="bold">
-                        Đơn hàng #{order.id}
-                      </Typography>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <Typography variant="body2" color="text.secondary">
-                          {formatDateTime(order.createdAt)}
-                        </Typography>
-                        <Chip
-                          size="small"
-                          label={getOrderStatusLabel(order.status)}
-                          color={getOrderStatusColor(order.status)}
-                        />
-                      </Box>
-                    </Box>
-                    
-                    <Divider sx={{ my: 1 }} />
-                    
-                    <List dense>
-                      {order.OrderItems?.map((item) => (
-                        <ListItem key={item.id} sx={{ py: 0.5 }}>
-                          <Box sx={{ 
-                            width: 50, 
-                            height: 50, 
-                            borderRadius: 1, 
-                            overflow: 'hidden', 
-                            mr: 1.5,
-                            flexShrink: 0 
-                          }}>
-                            <img 
-                              src={item.MenuItem?.image || `https://via.placeholder.com/50x50?text=${encodeURIComponent(item.MenuItem?.name || 'Món ăn')}`}
-                              alt={item.MenuItem?.name || 'Món ăn'}
-                              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                            />
-                          </Box>
-                          <ListItemText
-                            primary={
-                              <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                                <Typography variant="body2" fontWeight="medium">
-                                  {item.MenuItem?.name || `Món #${item.menuItemId}`}
-                                </Typography>
-                                <Typography variant="body2" component="span" sx={{ mx: 0.5 }}>
-                                  x{item.quantity}
-                                </Typography>
-                                <Chip
-                                  size="small"
-                                  label={getItemStatusLabel(item.status)}
-                                  color={getOrderStatusColor(item.status)}
-                                  sx={{ ml: 1, height: 20, '& .MuiChip-label': { px: 0.5, fontSize: '0.7rem' } }}
-                                />
-                              </Box>
-                            }
-                            secondary={
-                              <Typography variant="body2" color="text.secondary">
-                                {formatPrice(item.price * item.quantity)}
-                              </Typography>
-                            }
-                          />
-                        </ListItem>
-                      ))}
-                    </List>
-                    
-                    <Box sx={{ mt: 1, textAlign: 'right' }}>
-                      <Typography variant="subtitle2">
-                        Tổng tiền: {formatPrice(order.OrderItems.reduce((sum, item) => sum + (item.price * item.quantity), 0))}
-                      </Typography>
-                    </Box>
-                  </Box>
-                </Paper>
-              ))}
-            </List>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseOrdersDialog}>Đóng</Button>
-        </DialogActions>
-      </Dialog>
     </Box>
   );
 };

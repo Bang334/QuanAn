@@ -79,7 +79,7 @@ const MySalaryPage = () => {
         
         {currentMonthSalary ? (
           <Grid container spacing={3}>
-            <Grid size={{ xs: 12, lg: 4 }}>
+            <Grid sm={12} lg={4}>
               <Card>
                 <CardContent>
                   <Typography variant="subtitle1" color="text.secondary">
@@ -91,7 +91,7 @@ const MySalaryPage = () => {
                 </CardContent>
               </Card>
             </Grid>
-            <Grid size={{ xs: 12, lg: 4 }}>
+            <Grid sm={12} lg={4}>
               <Card>
                 <CardContent>
                   <Typography variant="subtitle1" color="text.secondary">
@@ -103,7 +103,7 @@ const MySalaryPage = () => {
                 </CardContent>
               </Card>
             </Grid>
-            <Grid size={{ xs: 12, lg: 4 }}>
+            <Grid sm={12} lg={4}>
               <Card>
                 <CardContent>
                   <Typography variant="subtitle1" color="text.secondary">
@@ -115,7 +115,7 @@ const MySalaryPage = () => {
                 </CardContent>
               </Card>
             </Grid>
-            <Grid size={{ xs: 12, lg: 6 }}>
+            <Grid sm={12} lg={6}>
               <Card>
                 <CardContent>
                   <Typography variant="subtitle1" color="text.secondary">
@@ -127,7 +127,7 @@ const MySalaryPage = () => {
                 </CardContent>
               </Card>
             </Grid>
-            <Grid size={{ xs: 12, lg: 6 }}>
+            <Grid sm={12} lg={6}>
               <Card>
                 <CardContent>
                   <Typography variant="subtitle1" color="text.secondary">
@@ -146,7 +146,7 @@ const MySalaryPage = () => {
               </Card>
             </Grid>
             {currentMonthSalary.note && (
-              <Grid size={{ xs: 12 }}>
+              <Grid sm={12}>
                 <Card>
                   <CardContent>
                     <Typography variant="subtitle1" color="text.secondary">
@@ -189,7 +189,7 @@ const MySalaryPage = () => {
         </Box>
         
         <Grid container spacing={3} sx={{ mb: 3 }}>
-          <Grid size={{ xs: 12, lg: 6 }}>
+          <Grid sm={12} lg={6}>
             <Card>
               <CardContent>
                 <Typography variant="subtitle1" color="text.secondary">
@@ -201,7 +201,7 @@ const MySalaryPage = () => {
               </CardContent>
             </Card>
           </Grid>
-          <Grid size={{ xs: 12, lg: 6 }}>
+          <Grid sm={12} lg={6}>
             <Card>
               <CardContent>
                 <Typography variant="subtitle1" color="text.secondary">

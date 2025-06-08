@@ -491,19 +491,6 @@ const OrdersPage = () => {
                     Chi tiết
                   </Button>
                   
-                  {/* Hiển thị nút xác nhận khi đơn hàng đang ở trạng thái pending */}
-                  {order.status === 'pending' && (
-                    <Button 
-                      size="small" 
-                      variant="contained" 
-                      color="primary"
-                      startIcon={<CheckIcon />}
-                      onClick={() => handleAcceptOrder(order.id)}
-                    >
-                      Xác nhận
-                    </Button>
-                  )}
-                  
                   {/* Hiển thị nút thanh toán khi tất cả các món ăn đã được phục vụ */}
                   {order.OrderItems && 
                    order.OrderItems.every(item => item.status === 'served' || item.status === 'completed') && (

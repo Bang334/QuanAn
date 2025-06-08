@@ -199,42 +199,6 @@ const OrdersPage = () => {
     }
   };
   
-  const handleAcceptOrder = async (orderId) => {
-    try {
-      setSnackbar({
-        open: true,
-        message: 'Đang xác nhận đơn hàng...',
-        severity: 'info'
-      });
-      
-      await orderService.acceptOrder(orderId);
-      
-      // Refresh order details if dialog is open
-      if (detailsOpen && selectedOrder && selectedOrder.id === orderId) {
-        const updatedOrder = await orderService.getOrderById(orderId);
-        setSelectedOrder(updatedOrder);
-      }
-      
-      // Refresh all orders
-      fetchOrders();
-      
-      setSnackbar({
-        open: true,
-        message: 'Đơn hàng đã được xác nhận thành công!',
-        severity: 'success'
-      });
-    } catch (err) {
-      setError('Lỗi khi xác nhận đơn hàng.');
-      console.error('Error accepting order:', err);
-      
-      setSnackbar({
-        open: true,
-        message: 'Lỗi khi xác nhận đơn hàng.',
-        severity: 'error'
-      });
-    }
-  };
-  
   const handleItemStatusChange = async (orderId, itemId, status) => {
     try {
       setSnackbar({
@@ -491,19 +455,6 @@ const OrdersPage = () => {
                     Chi tiết
                   </Button>
                   
-                  {/* Hiển thị nút xác nhận khi đơn hàng đang ở trạng thái pending */}
-                  {order.status === 'pending' && (
-                    <Button 
-                      size="small" 
-                      variant="contained" 
-                      color="primary"
-                      startIcon={<CheckIcon />}
-                      onClick={() => handleAcceptOrder(order.id)}
-                    >
-                      Xác nhận
-                    </Button>
-                  )}
-                  
                   {/* Hiển thị nút thanh toán khi tất cả các món ăn đã được phục vụ */}
                   {order.OrderItems && 
                    order.OrderItems.every(item => item.status === 'served' || item.status === 'completed') && (
@@ -671,6 +622,30 @@ const OrdersPage = () => {
                             
                             {/* Các nút cập nhật trạng thái món ăn */}
                             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, mt: 1 }}>
+                              {item.status === 'pending' && (
+                                <Button
+                                  size="small"
+                                  variant="outlined"
+                                  color="warning"
+                                  onClick={() => handleItemStatusChange(selectedOrder.id, item.id, 'preparing')}
+                                  startIcon={<RestaurantIcon fontSize="small" />}
+                                >
+                                  Đang chế biến
+                                </Button>
+                              )}
+                              
+                              {item.status === 'preparing' && (
+                                <Button
+                                  size="small"
+                                  variant="outlined"
+                                  color="success"
+                                  onClick={() => handleItemStatusChange(selectedOrder.id, item.id, 'ready')}
+                                  startIcon={<CheckIcon fontSize="small" />}
+                                >
+                                  Sẵn sàng
+                                </Button>
+                              )}
+                              
                               {item.status === 'ready' && (
                                 <Button
                                   size="small"
@@ -700,18 +675,6 @@ const OrdersPage = () => {
                 Đóng
               </Button>
               <Box>
-                {/* Nút xác nhận đơn hàng khi đơn đang ở trạng thái pending */}
-                {selectedOrder.status === 'pending' && (
-                  <Button 
-                    variant="contained" 
-                    color="primary"
-                    startIcon={<CheckIcon />}
-                    onClick={() => handleAcceptOrder(selectedOrder.id)}
-                  >
-                    Xác nhận đơn hàng
-                  </Button>
-                )}
-                
                 {/* Chỉ hiển thị nút thanh toán khi tất cả các món ăn đã được phục vụ */}
                 {selectedOrder.OrderItems && 
                  selectedOrder.OrderItems.every(item => item.status === 'served' || item.status === 'completed') && (
