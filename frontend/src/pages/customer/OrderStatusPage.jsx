@@ -626,38 +626,58 @@ const OrderStatusPage = () => {
               ))}
             </List>
             
-            <Box 
-              sx={{ 
-                mt: 2, 
-                p: { xs: 1.5, sm: 2 }, 
-                bgcolor: alpha(theme.palette.primary.main, 0.05),
-                borderRadius: 2,
-                display: 'flex', 
-                justifyContent: 'space-between', 
-                alignItems: 'center',
-                flexDirection: order.status === 'completed' ? 'column' : 'row'
-              }}
-            >
+            <Box sx={{ 
+              p: 2,
+              bgcolor: alpha(theme.palette.primary.main, 0.05),
+              borderRadius: 2,
+              mt: 2,
+              boxShadow: `0 1px 3px ${alpha(theme.palette.primary.main, 0.1)}`
+            }}>
+              {/* Hiển thị thông tin giá gốc nếu có khuyến mãi */}
+              {order.totalAmount < order.OrderItems.reduce((total, item) => total + (item.price * item.quantity), 0) && (
+                <Box sx={{ 
+                  display: 'flex', 
+                  justifyContent: 'space-between', 
+                  alignItems: 'center',
+                  width: '100%',
+                  mb: 1
+                }}>
+                  <Typography variant="body1" color="text.secondary">
+                    Tạm tính:
+                  </Typography>
+                  <Typography 
+                    variant="body1" 
+                    color="text.secondary"
+                    sx={{ 
+                      textDecoration: 'line-through'
+                    }}
+                  >
+                    {formatPrice(order.OrderItems.reduce((total, item) => total + (item.price * item.quantity), 0))}
+                  </Typography>
+                </Box>
+              )}
+              
+              {/* Hiển thị tổng tiền sau khuyến mãi */}
               <Box sx={{ 
                 display: 'flex', 
                 justifyContent: 'space-between', 
                 alignItems: 'center',
                 width: '100%',
-                mb: order.status === 'completed' ? 1 : 0
+                py: order.totalAmount < order.OrderItems.reduce((total, item) => total + (item.price * item.quantity), 0) ? 1 : 0,
+                borderTop: order.totalAmount < order.OrderItems.reduce((total, item) => total + (item.price * item.quantity), 0) ? `1px dashed ${alpha(theme.palette.divider, 0.3)}` : 'none'
               }}>
-                <Typography variant="subtitle1" fontWeight="medium" sx={{ fontSize: { xs: '0.9rem', sm: '1rem' } }}>
+                <Typography variant="h6" fontWeight="bold">
                   Tổng tiền:
                 </Typography>
                 <Typography 
                   variant="h6" 
                   fontWeight="bold" 
                   color="primary.main"
-                  sx={{ fontSize: { xs: '1.1rem', sm: '1.25rem' } }}
                 >
-                  {formatPrice(order.OrderItems.reduce((total, item) => total + (item.price * item.quantity), 0))}
+                  {formatPrice(order.totalAmount)}
                 </Typography>
               </Box>
-              
+            
               {/* Hiển thị thông tin thanh toán cho đơn hàng đã hoàn thành */}
               {order.status === 'completed' && (
                 <Box sx={{ 
@@ -666,6 +686,7 @@ const OrderStatusPage = () => {
                   alignItems: 'center',
                   width: '100%',
                   pt: 1,
+                  mt: 1,
                   borderTop: `1px dashed ${alpha(theme.palette.divider, 0.3)}`
                 }}>
                   <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.8rem', sm: '0.9rem' } }}>

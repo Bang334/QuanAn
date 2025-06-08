@@ -1,4 +1,4 @@
-const { Promotion, OrderPromotion, Order } = require('../models');
+const { Promotion, OrderPromotion, Order, OrderItem, MenuItem } = require('../models');
 const { Op } = require('sequelize');
 
 // Create a new promotion
@@ -223,7 +223,15 @@ exports.applyPromotionToOrder = async (req, res) => {
     const { orderId, promotionId } = req.body;
     
     // Check if order exists
-    const order = await Order.findByPk(orderId);
+    const order = await Order.findByPk(orderId, {
+      include: [
+        {
+          model: OrderItem,
+          include: [MenuItem]
+        }
+      ]
+    });
+    
     if (!order) {
       return res.status(404).json({ message: 'Không tìm thấy đơn hàng' });
     }
@@ -253,41 +261,102 @@ exports.applyPromotionToOrder = async (req, res) => {
       return res.status(400).json({ message: 'Khuyến mãi đã đạt giới hạn sử dụng' });
     }
     
-    // Calculate discount amount
-    let discountAmount = 0;
-    if (promotion.discountType === 'percent') {
-      discountAmount = (order.totalAmount * promotion.discountValue) / 100;
+    // Check if the promotion has applicable categories
+    if (promotion.applicableCategories) {
+      const applicableCategories = promotion.applicableCategories.split(',').map(cat => cat.trim());
       
-      // Apply maximum discount if set
-      if (promotion.maximumDiscountAmount !== null && discountAmount > promotion.maximumDiscountAmount) {
-        discountAmount = promotion.maximumDiscountAmount;
+      // Check if any items in the order belong to the applicable categories
+      const hasApplicableItems = order.OrderItems.some(item => 
+        item.MenuItem && applicableCategories.includes(item.MenuItem.category)
+      );
+      
+      if (!hasApplicableItems) {
+        return res.status(400).json({ 
+          message: `Khuyến mãi này chỉ áp dụng cho các danh mục: ${promotion.applicableCategories}` 
+        });
       }
+      
+      // Calculate discount amount based only on applicable items
+      let eligibleAmount = 0;
+      order.OrderItems.forEach(item => {
+        if (item.MenuItem && applicableCategories.includes(item.MenuItem.category)) {
+          eligibleAmount += item.price * item.quantity;
+        }
+      });
+      
+      // Calculate discount amount
+      let discountAmount = 0;
+      if (promotion.discountType === 'percent') {
+        discountAmount = (eligibleAmount * promotion.discountValue) / 100;
+        
+        // Apply maximum discount if set
+        if (promotion.maximumDiscountAmount !== null && discountAmount > promotion.maximumDiscountAmount) {
+          discountAmount = promotion.maximumDiscountAmount;
+        }
+      } else {
+        discountAmount = Math.min(promotion.discountValue, eligibleAmount);
+      }
+      
+      // Apply promotion
+      const orderPromotion = await OrderPromotion.create({
+        orderId,
+        promotionId,
+        discountAmount
+      });
+      
+      // Update promotion usage count
+      await promotion.update({
+        usageCount: promotion.usageCount + 1
+      });
+      
+      // Update order total
+      const newTotal = Math.max(0, order.totalAmount - discountAmount);
+      await order.update({ totalAmount: newTotal });
+      
+      return res.status(201).json({
+        message: 'Áp dụng khuyến mãi thành công',
+        orderPromotion,
+        discountAmount,
+        newTotal
+      });
     } else {
-      discountAmount = promotion.discountValue;
+      // If no specific categories, apply to entire order
+      // Calculate discount amount
+      let discountAmount = 0;
+      if (promotion.discountType === 'percent') {
+        discountAmount = (order.totalAmount * promotion.discountValue) / 100;
+        
+        // Apply maximum discount if set
+        if (promotion.maximumDiscountAmount !== null && discountAmount > promotion.maximumDiscountAmount) {
+          discountAmount = promotion.maximumDiscountAmount;
+        }
+      } else {
+        discountAmount = promotion.discountValue;
+      }
+      
+      // Apply promotion
+      const orderPromotion = await OrderPromotion.create({
+        orderId,
+        promotionId,
+        discountAmount
+      });
+      
+      // Update promotion usage count
+      await promotion.update({
+        usageCount: promotion.usageCount + 1
+      });
+      
+      // Update order total
+      const newTotal = Math.max(0, order.totalAmount - discountAmount);
+      await order.update({ totalAmount: newTotal });
+      
+      return res.status(201).json({
+        message: 'Áp dụng khuyến mãi thành công',
+        orderPromotion,
+        discountAmount,
+        newTotal
+      });
     }
-    
-    // Apply promotion
-    const orderPromotion = await OrderPromotion.create({
-      orderId,
-      promotionId,
-      discountAmount
-    });
-    
-    // Update promotion usage count
-    await promotion.update({
-      usageCount: promotion.usageCount + 1
-    });
-    
-    // Update order total (if needed)
-    const newTotal = Math.max(0, order.totalAmount - discountAmount);
-    await order.update({ totalAmount: newTotal });
-    
-    return res.status(201).json({
-      message: 'Áp dụng khuyến mãi thành công',
-      orderPromotion,
-      discountAmount,
-      newTotal
-    });
   } catch (error) {
     console.error('Error applying promotion:', error);
     return res.status(500).json({ message: 'Lỗi khi áp dụng khuyến mãi', error: error.message });
@@ -375,7 +444,15 @@ exports.validatePromotionCode = async (req, res) => {
     }
     
     // Check if order exists
-    const order = await Order.findByPk(orderId);
+    const order = await Order.findByPk(orderId, {
+      include: [
+        {
+          model: OrderItem,
+          include: [MenuItem]
+        }
+      ]
+    });
+    
     if (!order) {
       return res.status(404).json({ message: 'Không tìm thấy đơn hàng' });
     }
@@ -417,17 +494,43 @@ exports.validatePromotionCode = async (req, res) => {
       return res.status(400).json({ message: 'Mã khuyến mãi đã đạt giới hạn sử dụng' });
     }
     
-    // Calculate discount amount
+    // Check if the promotion has applicable categories
     let discountAmount = 0;
+    let eligibleAmount = order.totalAmount;
+    
+    if (promotion.applicableCategories) {
+      const applicableCategories = promotion.applicableCategories.split(',').map(cat => cat.trim());
+      
+      // Check if any items in the order belong to the applicable categories
+      const hasApplicableItems = order.OrderItems.some(item => 
+        item.MenuItem && applicableCategories.includes(item.MenuItem.category)
+      );
+      
+      if (!hasApplicableItems) {
+        return res.status(400).json({ 
+          message: `Mã khuyến mãi này chỉ áp dụng cho các danh mục: ${promotion.applicableCategories}` 
+        });
+      }
+      
+      // Calculate eligible amount based only on applicable items
+      eligibleAmount = 0;
+      order.OrderItems.forEach(item => {
+        if (item.MenuItem && applicableCategories.includes(item.MenuItem.category)) {
+          eligibleAmount += item.price * item.quantity;
+        }
+      });
+    }
+    
+    // Calculate discount amount
     if (promotion.discountType === 'percent') {
-      discountAmount = (order.totalAmount * promotion.discountValue) / 100;
+      discountAmount = (eligibleAmount * promotion.discountValue) / 100;
       
       // Apply maximum discount if set
       if (promotion.maximumDiscountAmount !== null && discountAmount > promotion.maximumDiscountAmount) {
         discountAmount = promotion.maximumDiscountAmount;
       }
     } else {
-      discountAmount = promotion.discountValue;
+      discountAmount = Math.min(promotion.discountValue, eligibleAmount);
     }
     
     // Calculate new total
@@ -440,11 +543,13 @@ exports.validatePromotionCode = async (req, res) => {
         name: promotion.name,
         description: promotion.description,
         discountType: promotion.discountType,
-        discountValue: promotion.discountValue
+        discountValue: promotion.discountValue,
+        applicableCategories: promotion.applicableCategories
       },
       discountAmount,
       originalTotal: order.totalAmount,
-      newTotal
+      newTotal,
+      eligibleAmount
     });
   } catch (error) {
     console.error('Error validating promotion code:', error);
