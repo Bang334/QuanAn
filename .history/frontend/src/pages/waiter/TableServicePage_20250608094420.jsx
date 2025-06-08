@@ -315,6 +315,29 @@ const TableServicePage = () => {
 
   const handleTableStatusChange = async (tableId, newStatus) => {
     try {
+      // Nếu đang chuyển sang trạng thái available, kiểm tra tất cả đơn hàng
+      if (newStatus === 'available') {
+        // Lấy thông tin tất cả đơn hàng của bàn
+        const ordersResponse = await axios.get(
+          `${API_URL}/api/orders/table/${tableId}?status=active`, 
+          { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
+        );
+        
+        // Kiểm tra xem còn đơn hàng nào chưa hoàn thành hoặc chưa hủy không
+        const activeOrders = ordersResponse.data.filter(
+          order => !['completed', 'cancelled'].includes(order.status)
+        );
+        
+        if (activeOrders.length > 0) {
+          setSnackbar({
+            open: true,
+            message: 'Không thể cập nhật trạng thái bàn. Vẫn còn đơn hàng chưa hoàn thành.',
+            severity: 'error'
+          });
+          return;
+        }
+      }
+      
       // Nếu không có vấn đề, tiến hành cập nhật trạng thái bàn
       await axios.put(
         `${API_URL}/api/tables/${tableId}/status`,
@@ -334,13 +357,9 @@ const TableServicePage = () => {
       });
     } catch (error) {
       console.error('Error updating table status:', error);
-      
-      // Hiển thị thông báo lỗi từ backend nếu có
-      const errorMessage = error.response?.data?.message || 'Lỗi khi cập nhật trạng thái bàn';
-      
       setSnackbar({
         open: true,
-        message: errorMessage,
+        message: 'Lỗi khi cập nhật trạng thái bàn',
         severity: 'error'
       });
     }

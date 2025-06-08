@@ -382,17 +382,8 @@ router.post('/', async (req, res) => {
       });
     }
     
-    // Update table status without updating updatedAt
-    if (table.status !== 'occupied') {
-      // Sử dụng raw query để không cập nhật updatedAt
-      await sequelize.query(
-        'UPDATE Tables SET status = :status WHERE id = :id',
-        {
-          replacements: { status: 'occupied', id: tableId },
-          type: sequelize.QueryTypes.UPDATE
-        }
-      );
-    }
+    // Update table status
+    await table.update({ status: 'occupied' });
     
     // Get complete order with items
     const completeOrder = await Order.findByPk(order.id, {
@@ -427,11 +418,10 @@ router.put('/:id/status', authenticateToken, async (req, res) => {
     
     // If order is completed, update table status
     if (status === 'completed') {
-      // Không tự động cập nhật trạng thái bàn thành available nữa
-      // const table = await Table.findByPk(order.tableId);
-      // if (table) {
-      //   await table.update({ status: 'available' });
-      // }
+      const table = await Table.findByPk(order.tableId);
+      if (table) {
+        await table.update({ status: 'available' });
+      }
     }
     
     res.json(order);

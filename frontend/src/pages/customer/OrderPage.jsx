@@ -24,6 +24,13 @@ import {
   IconButton,
   useTheme,
   alpha,
+  CircularProgress,
+  Alert,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
 } from '@mui/material';
 import {
   Receipt as ReceiptIcon,
@@ -31,6 +38,8 @@ import {
   LocalDining as LocalDiningIcon,
   Payment as PaymentIcon,
   Info as InfoIcon,
+  LocalOffer as LocalOfferIcon,
+  Close as CloseIcon,
 } from '@mui/icons-material';
 import axios from 'axios';
 import { API_URL } from '../../config';
@@ -44,6 +53,13 @@ const OrderPage = () => {
   
   const { tableId } = useCart();
   const navigate = useNavigate();
+  const [discountDialogOpen, setDiscountDialogOpen] = useState(false);
+  const [selectedOrderId, setSelectedOrderId] = useState(null);
+  const [promoCode, setPromoCode] = useState('');
+  const [promoLoading, setPromoLoading] = useState(false);
+  const [promoError, setPromoError] = useState(null);
+  const [promoSuccess, setPromoSuccess] = useState(null);
+  const [discountInfo, setDiscountInfo] = useState(null);
 
   useEffect(() => {
     if (!tableId) {
@@ -67,7 +83,7 @@ const OrderPage = () => {
         // (đơn hàng có thời gian tạo sau khi bàn được cập nhật trạng thái)
         const currentCustomerOrders = ordersResponse.data.filter(order => {
           const orderCreatedAt = new Date(order.createdAt);
-          return orderCreatedAt >= tableLastUpdated;
+          return orderCreatedAt > tableLastUpdated;
         });
         
         setOrders(currentCustomerOrders);
@@ -88,20 +104,80 @@ const OrderPage = () => {
   };
 
   const handleRequestPayment = async (orderId) => {
+    setSelectedOrderId(orderId);
+    setDiscountDialogOpen(true);
+  };
+
+  const handleCloseDiscountDialog = () => {
+    setDiscountDialogOpen(false);
+    setPromoCode('');
+    setPromoError(null);
+    setPromoSuccess(null);
+    setDiscountInfo(null);
+  };
+
+  const handleSubmitPaymentRequest = async () => {
     try {
       setLoading(true);
-      await axios.put(`${API_URL}/api/orders/${orderId}/payment-request`, {
+      await axios.put(`${API_URL}/api/orders/${selectedOrderId}/payment-request`, {
         tableId: tableId
       });
       
       const response = await axios.get(`${API_URL}/api/orders/table/${tableId}`);
       setOrders(response.data);
       setError(null);
+      setDiscountDialogOpen(false);
     } catch (err) {
       console.error('Error requesting payment:', err);
       setError('Không thể yêu cầu thanh toán. Vui lòng thử lại sau.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const validatePromoCode = async () => {
+    if (!promoCode.trim()) {
+      setPromoError('Vui lòng nhập mã khuyến mãi');
+      return;
+    }
+
+    setPromoLoading(true);
+    setPromoError(null);
+    setPromoSuccess(null);
+    
+    try {
+      const response = await axios.post(`${API_URL}/api/promotions/validate`, {
+        code: promoCode,
+        orderId: selectedOrderId
+      });
+      
+      setDiscountInfo(response.data);
+      setPromoSuccess(`Áp dụng mã giảm giá thành công! Giảm ${response.data.discountAmount.toLocaleString('vi-VN')}₫`);
+    } catch (err) {
+      console.error('Error validating promo code:', err);
+      setPromoError(err.response?.data?.message || 'Không thể kiểm tra mã khuyến mãi');
+      setDiscountInfo(null);
+    } finally {
+      setPromoLoading(false);
+    }
+  };
+
+  const applyPromoCode = async () => {
+    if (!discountInfo) return;
+    
+    try {
+      setPromoLoading(true);
+      await axios.post(`${API_URL}/api/promotions/apply`, {
+        orderId: selectedOrderId,
+        promotionId: discountInfo.promotion.id
+      });
+      
+      handleSubmitPaymentRequest();
+    } catch (err) {
+      console.error('Error applying promo code:', err);
+      setPromoError(err.response?.data?.message || 'Không thể áp dụng mã khuyến mãi');
+    } finally {
+      setPromoLoading(false);
     }
   };
 
@@ -660,6 +736,122 @@ const OrderPage = () => {
           )}
         </Box>
       </Box>
+      
+      {/* Discount Code Dialog */}
+      <Dialog 
+        open={discountDialogOpen} 
+        onClose={handleCloseDiscountDialog}
+        fullWidth
+        maxWidth="sm"
+      >
+        <DialogTitle>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Typography variant="h6" component="div">
+              <LocalOfferIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
+              Nhập mã giảm giá
+            </Typography>
+            <IconButton onClick={handleCloseDiscountDialog} size="small">
+              <CloseIcon />
+            </IconButton>
+          </Box>
+        </DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" sx={{ mb: 2 }}>
+            Nhập mã giảm giá (nếu có) để được giảm giá cho đơn hàng của bạn.
+          </Typography>
+          
+          <Box sx={{ display: 'flex', mb: 2 }}>
+            <TextField
+              fullWidth
+              label="Mã giảm giá"
+              variant="outlined"
+              value={promoCode}
+              onChange={(e) => setPromoCode(e.target.value)}
+              disabled={promoLoading}
+              error={!!promoError}
+              helperText={promoError}
+              sx={{ mr: 1 }}
+            />
+            <Button 
+              variant="contained" 
+              onClick={validatePromoCode}
+              disabled={promoLoading || !promoCode.trim()}
+            >
+              {promoLoading ? <CircularProgress size={24} /> : 'Áp dụng'}
+            </Button>
+          </Box>
+          
+          {promoSuccess && (
+            <Alert severity="success" sx={{ mb: 2 }}>
+              {promoSuccess}
+            </Alert>
+          )}
+          
+          {discountInfo && (
+            <Box sx={{ 
+              border: '1px solid', 
+              borderColor: 'divider', 
+              borderRadius: 1, 
+              p: 2,
+              mb: 2,
+              bgcolor: alpha(theme.palette.success.main, 0.05)
+            }}>
+              <Typography variant="subtitle1" fontWeight="medium">
+                Thông tin khuyến mãi:
+              </Typography>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 1 }}>
+                <Typography variant="body2">Tên khuyến mãi:</Typography>
+                <Typography variant="body2" fontWeight="medium">{discountInfo.promotion.name}</Typography>
+              </Box>
+              {discountInfo.promotion.description && (
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 0.5 }}>
+                  <Typography variant="body2">Mô tả:</Typography>
+                  <Typography variant="body2">{discountInfo.promotion.description}</Typography>
+                </Box>
+              )}
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 0.5 }}>
+                <Typography variant="body2">Giảm giá:</Typography>
+                <Typography variant="body2" fontWeight="medium">
+                  {discountInfo.promotion.discountType === 'percent' 
+                    ? `${discountInfo.promotion.discountValue}%` 
+                    : `${discountInfo.promotion.discountValue.toLocaleString('vi-VN')}₫`}
+                </Typography>
+              </Box>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 0.5 }}>
+                <Typography variant="body2">Số tiền giảm:</Typography>
+                <Typography variant="body2" fontWeight="medium" color="success.main">
+                  {discountInfo.discountAmount.toLocaleString('vi-VN')}₫
+                </Typography>
+              </Box>
+              <Divider sx={{ my: 1 }} />
+              <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                <Typography variant="subtitle2">Tổng tiền gốc:</Typography>
+                <Typography variant="subtitle2">
+                  {discountInfo.originalTotal.toLocaleString('vi-VN')}₫
+                </Typography>
+              </Box>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 0.5 }}>
+                <Typography variant="subtitle1" fontWeight="bold">Tổng tiền sau giảm:</Typography>
+                <Typography variant="subtitle1" fontWeight="bold" color="success.main">
+                  {discountInfo.newTotal.toLocaleString('vi-VN')}₫
+                </Typography>
+              </Box>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 3 }}>
+          <Button onClick={handleCloseDiscountDialog} color="inherit">
+            Hủy
+          </Button>
+          <Button 
+            variant="contained" 
+            onClick={discountInfo ? applyPromoCode : handleSubmitPaymentRequest}
+            disabled={promoLoading}
+          >
+            {promoLoading ? <CircularProgress size={24} /> : 'Yêu cầu thanh toán'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

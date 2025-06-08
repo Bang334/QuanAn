@@ -228,7 +228,11 @@ const OrderStatusPage = () => {
     try {
       setLoading(true);
       await orderService.cancelOrder(orderId);
+      
+      // Refresh order details
       const response = await axios.get(`${API_URL}/api/orders/${orderId}`);
+      
+      // If order items don't have images, add placeholder URLs
       const orderWithImagesIfNeeded = {
         ...response.data,
         OrderItems: response.data.OrderItems.map(item => ({

@@ -123,27 +123,6 @@ router.put('/:id/status', authenticateToken, isWaiter, async (req, res) => {
       return res.status(404).json({ message: 'Table not found' });
     }
     
-    // Kiểm tra nếu đang chuyển từ occupied sang available
-    if (table.status === 'occupied' && status === 'available') {
-      // Kiểm tra tất cả đơn hàng của bàn này
-      const { Order } = require('../models');
-      const activeOrders = await Order.findAll({
-        where: {
-          tableId: id,
-          status: {
-            [require('sequelize').Op.notIn]: ['completed', 'cancelled']
-          }
-        }
-      });
-      
-      if (activeOrders.length > 0) {
-        return res.status(400).json({ 
-          message: 'Không thể chuyển trạng thái bàn. Tất cả đơn hàng phải được hoàn thành trước.',
-          activeOrders: activeOrders.length
-        });
-      }
-    }
-    
     await table.update({ status });
     
     res.json(table);
@@ -219,27 +198,6 @@ router.put('/:id/status', authenticateToken, isWaiter, async (req, res) => {
     const table = await Table.findByPk(id);
     if (!table) {
       return res.status(404).json({ message: 'Table not found' });
-    }
-    
-    // Kiểm tra nếu đang chuyển từ occupied sang available
-    if (table.status === 'occupied' && status === 'available') {
-      // Kiểm tra tất cả đơn hàng của bàn này
-      const { Order } = require('../models');
-      const activeOrders = await Order.findAll({
-        where: {
-          tableId: id,
-          status: {
-            [require('sequelize').Op.notIn]: ['completed', 'cancelled']
-          }
-        }
-      });
-      
-      if (activeOrders.length > 0) {
-        return res.status(400).json({ 
-          message: 'Không thể chuyển trạng thái bàn. Tất cả đơn hàng phải được hoàn thành trước.',
-          activeOrders: activeOrders.length
-        });
-      }
     }
     
     await table.update({ status });

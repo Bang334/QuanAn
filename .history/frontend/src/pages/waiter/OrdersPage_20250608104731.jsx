@@ -91,9 +91,10 @@ const OrdersPage = () => {
       const twentyFourHoursAgo = new Date(now);
       twentyFourHoursAgo.setHours(now.getHours() - 24);
       
-      // Use hours_ago parameter instead of date
+      // Sử dụng hours_ago và current_customer
       const filters = {
-        hours_ago: 24 // Filter orders from the last 24 hours
+        hours_ago: 24, // Filter orders from the last 24 hours
+        current_customer: true // Chỉ hiển thị đơn hàng của khách hàng hiện tại (createdAt > updatedAt của bàn)
       };
       
       if (statusFilter) filters.status = statusFilter;

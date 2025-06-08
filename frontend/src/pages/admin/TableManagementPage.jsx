@@ -21,6 +21,7 @@ import {
   CircularProgress,
   Alert,
   Snackbar,
+  Tooltip,
 } from '@mui/material';
 import {
   Edit as EditIcon,
@@ -74,6 +75,15 @@ const TableManagementPage = () => {
 
   const handleOpenDialog = (table = null) => {
     if (table) {
+      if (table.status === 'occupied') {
+        setSnackbar({
+          open: true,
+          message: 'Không thể chỉnh sửa bàn đang được sử dụng',
+          severity: 'warning',
+        });
+        return;
+      }
+      
       setCurrentTable(table);
       setFormData({
         name: table.name,
@@ -150,6 +160,19 @@ const TableManagementPage = () => {
 
   const handleDeleteTable = async (id) => {
     try {
+      // Find the table to check its status
+      const tableToDelete = tables.find(table => table.id === id);
+      
+      // Prevent deleting tables that are in use
+      if (tableToDelete && tableToDelete.status === 'occupied') {
+        setSnackbar({
+          open: true,
+          message: 'Không thể xóa bàn đang được sử dụng',
+          severity: 'warning',
+        });
+        return;
+      }
+      
       await axios.delete(`${API_URL}/api/tables/${id}`, {
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
       });
@@ -300,20 +323,30 @@ const TableManagementPage = () => {
                     >
                       <QrCodeIcon />
                     </IconButton>
-                    <IconButton 
-                      color="primary" 
-                      onClick={() => handleOpenDialog(table)}
-                      size="small"
-                    >
-                      <EditIcon />
-                    </IconButton>
-                    <IconButton 
-                      color="error" 
-                      onClick={() => handleDeleteTable(table.id)}
-                      size="small"
-                    >
-                      <DeleteIcon />
-                    </IconButton>
+                    <Tooltip title={table.status === 'occupied' ? 'Không thể chỉnh sửa bàn đang sử dụng' : 'Chỉnh sửa bàn'}>
+                      <span>
+                        <IconButton 
+                          color="primary" 
+                          onClick={() => handleOpenDialog(table)}
+                          size="small"
+                          disabled={table.status === 'occupied'}
+                        >
+                          <EditIcon />
+                        </IconButton>
+                      </span>
+                    </Tooltip>
+                    <Tooltip title={table.status === 'occupied' ? 'Không thể xóa bàn đang sử dụng' : 'Xóa bàn'}>
+                      <span>
+                        <IconButton 
+                          color="error" 
+                          onClick={() => handleDeleteTable(table.id)}
+                          size="small"
+                          disabled={table.status === 'occupied'}
+                        >
+                          <DeleteIcon />
+                        </IconButton>
+                      </span>
+                    </Tooltip>
                   </Box>
                 </CardContent>
               </Card>

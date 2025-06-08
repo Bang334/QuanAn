@@ -16,8 +16,12 @@ import {
   Alert,
   Badge,
   useTheme,
-  alpha
+  alpha,
+  Snackbar,
+  IconButton,
+  Tooltip
 } from '@mui/material';
+import RefreshIcon from '@mui/icons-material/Refresh';
 import axios from 'axios';
 import { API_URL } from '../../config';
 
@@ -28,8 +32,14 @@ const DashboardPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [tabValue, setTabValue] = useState(0);
+  const [updatingItems, setUpdatingItems] = useState([]);
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: '',
+    severity: 'success'
+  });
   
-  const fetchOrders = async () => {
+  const fetchOrders = async (showNotification = false) => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
@@ -42,10 +52,26 @@ const DashboardPage = () => {
       setOrders(response.data);
       filterOrdersByTab(response.data, tabValue);
       setLoading(false);
+      
+      // Show notification if requested (manual refresh)
+      if (showNotification) {
+        setSnackbar({
+          open: true,
+          message: 'Danh sách đơn hàng đã được cập nhật!',
+          severity: 'success'
+        });
+      }
     } catch (err) {
       console.error('Error fetching orders:', err);
       setError(err.response?.data?.message || 'Không thể tải dữ liệu đơn hàng');
       setLoading(false);
+      
+      // Show error notification
+      setSnackbar({
+        open: true,
+        message: 'Không thể tải dữ liệu đơn hàng',
+        severity: 'error'
+      });
     }
   };
 
@@ -62,7 +88,7 @@ const DashboardPage = () => {
   
   useEffect(() => {
     filterOrdersByTab(orders, tabValue);
-  }, [tabValue]);
+  }, [tabValue, orders]);
   
   const filterOrdersByTab = (orders, tabIndex) => {
     if (!orders || orders.length === 0) {
@@ -108,8 +134,11 @@ const DashboardPage = () => {
 
   const handleUpdateItemStatus = async (orderId, itemId, status) => {
     try {
+      // Set loading state for this specific item
+      setUpdatingItems(prev => [...prev, itemId]);
+      
       const token = localStorage.getItem('token');
-      await axios.put(`${API_URL}/api/orders/items/${itemId}/status`, 
+      const response = await axios.put(`${API_URL}/api/orders/items/${itemId}/status`, 
         { status },
         {
           headers: {
@@ -118,42 +147,54 @@ const DashboardPage = () => {
         }
       );
       
+      // Get the updated order status from the response
+      const { orderItem, orderStatus } = response.data;
+      
       // Cập nhật state
-      setOrders(prevOrders => 
-        prevOrders.map(order => {
+      setOrders(prevOrders => {
+        const updatedOrders = prevOrders.map(order => {
           if (order.id === orderId) {
             const updatedItems = order.OrderItems.map(item => 
-              item.id === itemId ? { ...item, status } : item
+              item.id === itemId ? { ...item, status: orderItem.status } : item
             );
-            
-            // Kiểm tra trạng thái của tất cả các món
-            const allReady = updatedItems.every(item => 
-              item.status === 'ready' || item.status === 'served' || item.status === 'cancelled'
-            );
-            
-            let newStatus = order.status;
-            if (allReady) {
-              newStatus = 'ready';
-            } else if (updatedItems.some(item => item.status === 'cooking')) {
-              newStatus = 'processing';
-            }
             
             return {
               ...order,
               OrderItems: updatedItems,
-              status: newStatus
+              status: orderStatus || order.status // Use the status from the backend if available
             };
           }
           return order;
-        })
-      );
+        });
+        
+        // Cập nhật lại danh sách lọc với orders mới
+        filterOrdersByTab(updatedOrders, tabValue);
+        
+        return updatedOrders;
+      });
       
-      // Cập nhật lại danh sách lọc
-      filterOrdersByTab(orders, tabValue);
+      // Hiển thị thông báo thành công
+      setSnackbar({
+        open: true,
+        message: status === 'ready' ? 'Món ăn đã được đánh dấu hoàn thành!' : 
+                 status === 'cooking' ? 'Món ăn đã được đánh dấu đang chế biến!' : 
+                 'Trạng thái món ăn đã được cập nhật!',
+        severity: 'success'
+      });
       
     } catch (err) {
       console.error('Error updating item status:', err);
       setError('Không thể cập nhật trạng thái món ăn');
+      
+      // Hiển thị thông báo lỗi
+      setSnackbar({
+        open: true,
+        message: 'Không thể cập nhật trạng thái món ăn',
+        severity: 'error'
+      });
+    } finally {
+      // Remove loading state for this item
+      setUpdatingItems(prev => prev.filter(id => id !== itemId));
     }
   };
 
@@ -203,6 +244,13 @@ const DashboardPage = () => {
     ).length;
   };
 
+  const handleCloseSnackbar = () => {
+    setSnackbar(prev => ({
+      ...prev,
+      open: false
+    }));
+  };
+
   if (loading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
@@ -221,9 +269,21 @@ const DashboardPage = () => {
 
   return (
     <Box>
-      <Typography variant="h4" width="75vw" gutterBottom sx={{ fontSize: { xs: '1.5rem', sm: '2rem' } }}>
-        Quản lý đơn hàng - Bếp
-      </Typography>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+        <Typography variant="h4" gutterBottom sx={{ fontSize: { xs: '1.5rem', sm: '2rem' }, mb: 0 }}>
+          Quản lý đơn hàng - Bếp
+        </Typography>
+        
+        <Tooltip title="Làm mới danh sách">
+          <IconButton 
+            onClick={() => fetchOrders(true)} 
+            color="primary"
+            disabled={loading}
+          >
+            {loading ? <CircularProgress size={24} /> : <RefreshIcon />}
+          </IconButton>
+        </Tooltip>
+      </Box>
       
       <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
         <Tabs 
@@ -362,10 +422,11 @@ const DashboardPage = () => {
                               color="primary"
                               onClick={() => handleUpdateItemStatus(order.id, item.id, 'cooking')}
                               sx={{ fontSize: { xs: '0.7rem', sm: '0.8rem' } }}
-                              disabled={order.status === 'pending'}
+                              disabled={order.status === 'pending' || updatingItems.includes(item.id)}
                               title={order.status === 'pending' ? 'Đơn hàng cần được xác nhận trước khi chế biến' : ''}
+                              startIcon={updatingItems.includes(item.id) ? <CircularProgress size={16} color="inherit" /> : null}
                             >
-                              Bắt đầu chế biến
+                              {updatingItems.includes(item.id) ? 'Đang xử lý...' : 'Bắt đầu chế biến'}
                             </Button>
                           )}
                           
@@ -376,8 +437,10 @@ const DashboardPage = () => {
                               color="success"
                               onClick={() => handleUpdateItemStatus(order.id, item.id, 'ready')}
                               sx={{ fontSize: { xs: '0.7rem', sm: '0.8rem' } }}
+                              disabled={updatingItems.includes(item.id)}
+                              startIcon={updatingItems.includes(item.id) ? <CircularProgress size={16} color="inherit" /> : null}
                             >
-                              Hoàn thành
+                              {updatingItems.includes(item.id) ? 'Đang xử lý...' : 'Hoàn thành'}
                             </Button>
                           )}
                         </CardActions>
@@ -390,6 +453,22 @@ const DashboardPage = () => {
           })}
         </Grid>
       )}
+      
+      {/* Snackbar for notifications */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={3000}
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert 
+          onClose={handleCloseSnackbar} 
+          severity={snackbar.severity} 
+          sx={{ width: '100%' }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };

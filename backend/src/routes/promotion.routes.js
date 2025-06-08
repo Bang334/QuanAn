@@ -8,7 +8,8 @@ router.get('/admin', authenticateToken, isAdmin, promotionController.getAllPromo
 router.post('/', authenticateToken, isAdmin, promotionController.createPromotion);
 
 // Public routes
-router.get('/active', promotionController.getActivePromotions);
+router.get('/', promotionController.getActivePromotions);
+router.post('/validate', promotionController.validatePromotionCode);
 
 // Order promotion routes
 router.post('/apply', authenticateToken, promotionController.applyPromotionToOrder);

@@ -125,7 +125,7 @@ router.get('/stats', authenticateToken, isAdmin, async (req, res) => {
 // Get all orders - Staff only
 router.get('/', authenticateToken, async (req, res) => {
   try {
-    const { status, date, tableId, limit, hours_ago, current_customer } = req.query;
+    const { status, date, tableId, limit, hours_ago } = req.query;
     
     const whereClause = {};
     
@@ -173,22 +173,7 @@ router.get('/', authenticateToken, async (req, res) => {
       queryOptions.limit = parseInt(limit);
     }
     
-    let orders = await Order.findAll(queryOptions);
-    
-    // Nếu yêu cầu lọc theo khách hàng hiện tại (createdAt > updatedAt của bàn)
-    if (current_customer === 'true' && tableId) {
-      // Lấy thông tin bàn
-      const table = await Table.findByPk(tableId);
-      if (table) {
-        const tableUpdatedAt = new Date(table.updatedAt);
-        
-        // Lọc đơn hàng có createdAt > updatedAt của bàn
-        orders = orders.filter(order => {
-          const orderCreatedAt = new Date(order.createdAt);
-          return orderCreatedAt > tableUpdatedAt;
-        });
-      }
-    }
+    const orders = await Order.findAll(queryOptions);
     
     res.json(orders);
   } catch (error) {
@@ -382,17 +367,8 @@ router.post('/', async (req, res) => {
       });
     }
     
-    // Update table status without updating updatedAt
-    if (table.status !== 'occupied') {
-      // Sử dụng raw query để không cập nhật updatedAt
-      await sequelize.query(
-        'UPDATE Tables SET status = :status WHERE id = :id',
-        {
-          replacements: { status: 'occupied', id: tableId },
-          type: sequelize.QueryTypes.UPDATE
-        }
-      );
-    }
+    // Update table status
+    await table.update({ status: 'occupied' });
     
     // Get complete order with items
     const completeOrder = await Order.findByPk(order.id, {
@@ -427,11 +403,10 @@ router.put('/:id/status', authenticateToken, async (req, res) => {
     
     // If order is completed, update table status
     if (status === 'completed') {
-      // Không tự động cập nhật trạng thái bàn thành available nữa
-      // const table = await Table.findByPk(order.tableId);
-      // if (table) {
-      //   await table.update({ status: 'available' });
-      // }
+      const table = await Table.findByPk(order.tableId);
+      if (table) {
+        await table.update({ status: 'available' });
+      }
     }
     
     res.json(order);
@@ -453,29 +428,32 @@ router.put('/:id/payment', authenticateToken, isWaiter, async (req, res) => {
     }
     
     await order.update({ 
-      status: 'completed',
-      paymentStatus: 'paid',
-      paymentMethod
+      paymentStatus,
+      paymentMethod,
+      status: paymentStatus === 'paid' ? 'completed' : order.status
     });
     
-    // Không tự động cập nhật trạng thái bàn thành available nữa
-    // const table = await Table.findByPk(order.tableId);
-    // if (table) {
-    //   await table.update({ status: 'available' });
-    // }
-    
-    // Check if payment already exists for this order
-    const existingPayment = await Payment.findOne({ where: { orderId: id } });
-    if (!existingPayment) {
-      // Create payment record
-      await Payment.create({
-        orderId: id,
-        amount: order.totalAmount,
-        paymentMethod,
-        paymentDate: new Date(),
-        status: 'completed',
-        notes: `Thanh toán bởi ${req.user.username || 'nhân viên'}`
-      });
+    // If payment is completed, update table status and create payment record
+    if (paymentStatus === 'paid') {
+      // Update table status
+      const table = await Table.findByPk(order.tableId);
+      if (table) {
+        await table.update({ status: 'available' });
+      }
+      
+      // Check if payment already exists for this order
+      const existingPayment = await Payment.findOne({ where: { orderId: id } });
+      if (!existingPayment) {
+        // Create payment record
+        await Payment.create({
+          orderId: id,
+          amount: order.totalAmount,
+          paymentMethod,
+          paymentDate: new Date(),
+          status: 'completed',
+          notes: `Thanh toán bởi ${req.user.username || 'nhân viên'}`
+        });
+      }
     }
     
     res.json(order);
@@ -593,11 +571,11 @@ router.post('/:id/payment', authenticateToken, isWaiter, async (req, res) => {
       paymentMethod
     });
     
-    // Không tự động cập nhật trạng thái bàn thành available nữa
-    // const table = await Table.findByPk(order.tableId);
-    // if (table) {
-    //   await table.update({ status: 'available' });
-    // }
+    // Update table status
+    const table = await Table.findByPk(order.tableId);
+    if (table) {
+      await table.update({ status: 'available' });
+    }
     
     // Check if payment already exists for this order
     const existingPayment = await Payment.findOne({ where: { orderId: id } });
