@@ -2,5 +2,8 @@
   "dependencies": {
     "export-to-csv": "^1.4.0",
     "recharts": "^2.15.3"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.10"
   }
 }
