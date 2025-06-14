@@ -57,6 +57,8 @@ app.use('/api/promotions', require('./routes/promotion.routes'));
 app.use('/api/salaries', require('./routes/salary.routes'));
 app.use('/api/inventory', require('./routes/inventory.routes'));
 app.use('/api/kitchen-permissions', require('./routes/kitchen-permissions.routes'));
+app.use('/api/attendance', require('./routes/attendance.routes'));
+app.use('/api/schedule', require('./routes/schedule.routes'));
 
 // Socket.IO connection
 io.on('connection', (socket) => {

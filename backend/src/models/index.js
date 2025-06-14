@@ -17,6 +17,8 @@ const InventoryTransaction = require('./InventoryTransaction');
 const KitchenPermission = require('./KitchenPermission');
 const IngredientPriceHistory = require('./IngredientPriceHistory');
 const IngredientUsage = require('./IngredientUsage');
+const Attendance = require('./Attendance');
+const Schedule = require('./Schedule');
 
 // Define associations
 Order.belongsTo(Table, { foreignKey: 'tableId' });
@@ -113,6 +115,13 @@ IngredientUsage.belongsTo(MenuItem, { foreignKey: 'menuItemId' });
 RecipeIngredient.hasMany(IngredientUsage, { foreignKey: 'recipeIngredientId' });
 IngredientUsage.belongsTo(RecipeIngredient, { foreignKey: 'recipeIngredientId' });
 
+// User relationships
+User.hasMany(Attendance, { foreignKey: 'userId' });
+Attendance.belongsTo(User, { foreignKey: 'userId' });
+
+User.hasMany(Schedule, { foreignKey: 'userId' });
+Schedule.belongsTo(User, { foreignKey: 'userId' });
+
 module.exports = {
   User,
   Table,
@@ -133,5 +142,7 @@ module.exports = {
   KitchenPermission,
   IngredientPriceHistory,
   IngredientUsage,
+  Attendance,
+  Schedule,
   sequelize: require('../config/database')
 }; 

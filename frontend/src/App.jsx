@@ -38,6 +38,7 @@ import KitchenPermissionManagementPage from './pages/admin/KitchenPermissionMana
 import MenuManagementPage from './pages/admin/MenuManagementPage';
 import OrderDetailPage from './pages/admin/OrderDetailPage';
 import IngredientPriceHistoryPage from './pages/admin/IngredientPriceHistoryPage';
+import AdminAttendancePage from './pages/admin/AdminAttendancePage';
 
 // Kitchen Pages
 import KitchenDashboardPage from './pages/kitchen/DashboardPage';
@@ -45,11 +46,13 @@ import KitchenInventoryPage from './pages/kitchen/InventoryPage.jsx';
 import MySalaryPage from './pages/MySalaryPage';
 import { IngredientHistoryPage } from './pages/kitchen/IngredientHistoryPage';
 import PurchaseOrderDetailPage from './pages/kitchen/PurchaseOrderDetailPage';
+import KitchenAttendancePage from './pages/kitchen/KitchenAttendancePage';
 
 // Waiter Pages
 import WaiterDashboard from './pages/waiter/DashboardPage';
 import TableService from './pages/waiter/TableServicePage';
 import OrdersPage from './pages/waiter/OrdersPage';
+import WaiterAttendancePage from './pages/waiter/WaiterAttendancePage';
 
 // Context
 import { AuthProvider } from './contexts/AuthContext';
@@ -244,6 +247,7 @@ function App() {
                 <Route path="promotions" element={<AdminPromotionPage />} />
                 <Route path="analytics" element={<AdminRevenueAnalyticsPage />} />
                 <Route path="salaries" element={<AdminSalaryPage />} />
+                <Route path="attendance" element={<AdminAttendancePage />} />
                 <Route path="inventory" element={<AdminInventoryPage />} />
                 <Route path="inventory/:id/history" element={<IngredientHistoryPage />} />
                 <Route path="inventory/ingredient/:id/price-history" element={<IngredientPriceHistoryPage />} />
@@ -263,6 +267,7 @@ function App() {
                 <Route path="inventory/ingredient/:id/history" element={<IngredientHistoryPage />} />
                 <Route path="purchase-orders/:id" element={<PurchaseOrderDetailPage />} />
                 <Route path="salary" element={<MySalaryPage />} />
+                <Route path="attendance" element={<KitchenAttendancePage />} />
               </Route>
 
               {/* Waiter Routes */}
@@ -271,6 +276,7 @@ function App() {
                 <Route path="orders" element={<OrdersPage />} />
                 <Route path="tables" element={<TableService />} />
                 <Route path="salary" element={<MySalaryPage />} />
+                <Route path="attendance" element={<WaiterAttendancePage />} />
               </Route>
             </Routes>
           </Router>

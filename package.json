@@ -1,7 +1,9 @@
 {
   "dependencies": {
+    "dayjs": "^1.11.13",
     "export-to-csv": "^1.4.0",
     "node-cron": "^4.1.0",
+    "qrcode": "^1.5.4",
     "recharts": "^2.15.3"
   },
   "devDependencies": {

@@ -49,12 +49,13 @@ import {
   Store as StoreIcon,
   Settings as SettingsIcon,
   Notifications as NotificationsIcon,
+  AccessTime as AttendanceIcon,
 } from '@mui/icons-material';
 import { Link as RouterLink } from 'react-router-dom';
 
 const drawerWidth = 260;
 
-const AdminLayout = () => {
+const AdminLayout = ({ children }) => {
   const theme = useTheme();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [anchorEl, setAnchorEl] = useState(null);
@@ -118,6 +119,7 @@ const AdminLayout = () => {
   const staffMenuItems = [
     { text: 'Quản lý nhân viên', icon: <PeopleIcon />, path: '/admin/users' },
     { text: 'Quản lý lương', icon: <SalaryIcon />, path: '/admin/salaries' },
+    { text: 'Quản lý chấm công', icon: <AttendanceIcon />, path: '/admin/attendance' },
     { text: 'Quyền nhân viên bếp', icon: <SecurityIcon />, path: '/admin/kitchen-permissions' },
   ];
   
@@ -345,10 +347,10 @@ const AdminLayout = () => {
         position="fixed"
         elevation={1}
         sx={{
-          width: { sm: `calc(100% - ${drawerWidth}px)` },
-          ml: { sm: `${drawerWidth}px` },
+          width: '100%',
           backgroundColor: 'background.paper',
           color: 'text.primary',
+          zIndex: (theme) => theme.zIndex.drawer + 1
         }}
       >
         <Toolbar>
@@ -375,6 +377,7 @@ const AdminLayout = () => {
              location.pathname.includes('/admin/payments') ? 'Quản lý thanh toán' :
              location.pathname.includes('/admin/promotions') ? 'Quản lý khuyến mãi' :
              location.pathname.includes('/admin/salaries') ? 'Quản lý lương' :
+             location.pathname.includes('/admin/attendance') ? 'Quản lý chấm công & Lịch làm việc' :
              location.pathname.includes('/admin/analytics') ? 'Phân tích doanh thu' :
              location.pathname.includes('/admin/kitchen-permissions') ? 'Quyền nhân viên bếp' :
              'Quản lý nhà hàng'}
@@ -437,7 +440,12 @@ const AdminLayout = () => {
       </AppBar>
       <Box
         component="nav"
-        sx={{ width: { sm: drawerWidth }, flexShrink: { sm: 0 } }}
+        sx={{ 
+          width: { sm: drawerWidth }, 
+          flexShrink: { sm: 0 },
+          position: { sm: 'fixed' },
+          zIndex: { sm: theme.zIndex.drawer }
+        }}
         aria-label="mailbox folders"
       >
         {/* Mobile drawer */}
@@ -469,7 +477,10 @@ const AdminLayout = () => {
               width: drawerWidth,
               boxShadow: 3,
               border: 'none',
+              paddingTop: '64px', // Space for AppBar
             },
+            width: drawerWidth,
+            flexShrink: 0
           }}
           open
         >
@@ -481,13 +492,19 @@ const AdminLayout = () => {
         sx={{ 
           flexGrow: 1, 
           p: 3, 
-          width: { sm: `calc(100% - ${drawerWidth}px)` },
+          width: '100%',
+          maxWidth: '100%',
           backgroundColor: alpha(theme.palette.background.default, 0.5),
           minHeight: '100vh',
+          position: 'relative',
+          left: 0,
+          overflowX: 'hidden',
+          pl: { sm: `${drawerWidth + 24}px` },
+          boxSizing: 'border-box'
         }}
       >
         <Toolbar />
-        <Outlet />
+        {children || <Outlet />}
       </Box>
     </Box>
   );

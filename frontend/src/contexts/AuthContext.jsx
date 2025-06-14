@@ -29,6 +29,9 @@ export const AuthProvider = ({ children }) => {
     }
     
     setLoading(false);
+
+    // Thêm console.log để kiểm tra token
+    console.log('Token hiện tại:', localStorage.getItem('token'));
   }, []);
 
   const login = async (username, password) => {

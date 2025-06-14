@@ -25,7 +25,8 @@ import {
   TableBar as TableBarIcon,
   ExitToApp as LogoutIcon,
   AttachMoney as SalaryIcon,
-  ListAlt as OrdersIcon
+  ListAlt as OrdersIcon,
+  AccessTime as AttendanceIcon
 } from '@mui/icons-material';
 import { Link as RouterLink } from 'react-router-dom';
 
@@ -68,6 +69,7 @@ const WaiterLayout = () => {
     { text: 'Tổng quan', icon: <DashboardIcon />, path: '/waiter' },
     { text: 'Quản lý đơn hàng', icon: <OrdersIcon />, path: '/waiter/orders' },
     { text: 'Phục vụ bàn', icon: <TableBarIcon />, path: '/waiter/tables' },
+    { text: 'Chấm công & Lịch làm việc', icon: <AttendanceIcon />, path: '/waiter/attendance' },
     { text: 'Xem lương', icon: <SalaryIcon />, path: '/waiter/salary' },
   ];
 
