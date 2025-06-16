@@ -21,7 +21,7 @@ const Payment = sequelize.define('Payment', {
     allowNull: false
   },
   paymentMethod: {
-    type: DataTypes.ENUM('cash', 'card', 'momo', 'zalopay', 'vnpay'),
+    type: DataTypes.ENUM('cash', 'bank'),
     allowNull: false
   },
   paymentDate: {

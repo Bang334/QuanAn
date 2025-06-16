@@ -32,7 +32,7 @@ import { Link as RouterLink } from 'react-router-dom';
 
 const drawerWidth = 240;
 
-const WaiterLayout = () => {
+const WaiterLayout = ({ children }) => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [anchorEl, setAnchorEl] = useState(null);
   const { currentUser, logout } = useAuth();
@@ -203,7 +203,8 @@ const WaiterLayout = () => {
         sx={{ flexGrow: 1, p: 3, width: { sm: `calc(100% - ${drawerWidth}px)` } }}
       >
         <Toolbar />
-        <Outlet />
+        {/* Hỗ trợ cả children và Outlet cho nhiều cách sử dụng */}
+        {children || <Outlet />}
       </Box>
     </Box>
   );

@@ -2,6 +2,20 @@ const { Review, MenuItem, Order, Table } = require('../models');
 const { Op } = require('sequelize');
 const sequelize = require('../config/database');
 
+// Hàm lấy tổng số đánh giá
+exports.getTotalReviewCount = async (req, res) => {
+  try {
+    const count = await Review.count({
+      where: { isVisible: true }
+    });
+    
+    return res.status(200).json({ count });
+  } catch (error) {
+    console.error('Error counting reviews:', error);
+    return res.status(500).json({ message: 'Lỗi khi đếm đánh giá' });
+  }
+};
+
 // Hàm lấy tất cả đánh giá
 exports.getAllReviews = async (req, res) => {
   try {

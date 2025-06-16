@@ -30,7 +30,7 @@ exports.getMenuItemById = async (req, res) => {
   try {
     const menuItem = await MenuItem.findByPk(req.params.id, {
       attributes: {
-        include: ['avgRating', 'ratingCount', 'isPopular', 'ingredients', 'nutritionInfo', 'preparationTime', 'isSpicy', 'isVegetarian', 'allergens']
+        include: ['avgRating', 'ratingCount', 'isPopular', 'ingredients', 'nutritionInfo', 'preparationTime']
       }
     });
     
@@ -61,7 +61,7 @@ exports.getMenuItemById = async (req, res) => {
 // Tạo món ăn mới
 exports.createMenuItem = async (req, res) => {
   try {
-    const { name, description, price, category, isAvailable = true, ingredients, nutritionInfo, preparationTime, isSpicy, isVegetarian, allergens, isPopular, image } = req.body;
+    const { name, description, price, category, isAvailable = true, ingredients, nutritionInfo, preparationTime, isPopular, image } = req.body;
     
     if (!name || !price || !category) {
       return res.status(400).json({ message: 'Name, price, and category are required' });
@@ -77,9 +77,6 @@ exports.createMenuItem = async (req, res) => {
       ingredients,
       nutritionInfo,
       preparationTime,
-      isSpicy: isSpicy || false,
-      isVegetarian: isVegetarian || false,
-      allergens,
       isPopular: isPopular || false,
       avgRating: 0,
       ratingCount: 0
@@ -95,7 +92,7 @@ exports.createMenuItem = async (req, res) => {
 // Cập nhật món ăn
 exports.updateMenuItem = async (req, res) => {
   try {
-    const { name, description, price, category, isAvailable, ingredients, nutritionInfo, preparationTime, isSpicy, isVegetarian, allergens, isPopular, image } = req.body;
+    const { name, description, price, category, isAvailable, ingredients, nutritionInfo, preparationTime, isPopular, image } = req.body;
     
     const menuItem = await MenuItem.findByPk(req.params.id);
     
@@ -113,9 +110,6 @@ exports.updateMenuItem = async (req, res) => {
       ingredients: ingredients !== undefined ? ingredients : menuItem.ingredients,
       nutritionInfo: nutritionInfo !== undefined ? nutritionInfo : menuItem.nutritionInfo,
       preparationTime: preparationTime !== undefined ? preparationTime : menuItem.preparationTime,
-      isSpicy: isSpicy !== undefined ? isSpicy : menuItem.isSpicy,
-      isVegetarian: isVegetarian !== undefined ? isVegetarian : menuItem.isVegetarian,
-      allergens: allergens !== undefined ? allergens : menuItem.allergens,
       isPopular: isPopular !== undefined ? isPopular : menuItem.isPopular
     });
     

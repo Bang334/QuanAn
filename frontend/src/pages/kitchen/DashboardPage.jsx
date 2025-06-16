@@ -49,16 +49,26 @@ const DashboardPage = () => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get(`${API_URL}/api/orders/kitchen/view`, {
+      
+      // Tạo query params dựa trên timeFilter
+      let params = {};
+      if (timeFilter === 'day') {
+        params.hours_ago = 24;
+      } else if (timeFilter === 'week') {
+        params.days_ago = 7;
+      }
+      
+      // Chuyển đổi params thành query string
+      const queryString = new URLSearchParams(params).toString();
+      
+      const response = await axios.get(`${API_URL}/api/orders/kitchen/view${queryString ? `?${queryString}` : ''}`, {
         headers: {
           Authorization: `Bearer ${token}`
         }
       });
       
-      // Lọc đơn hàng theo thời gian
-      const filteredByTime = filterOrdersByTime(response.data, timeFilter);
-      setOrders(filteredByTime);
-      filterOrdersByTab(filteredByTime, tabValue);
+      setOrders(response.data);
+      filterOrdersByTab(response.data, tabValue);
       setLoading(false);
       
       // Show notification if requested (manual refresh)
@@ -83,22 +93,6 @@ const DashboardPage = () => {
     }
   };
   
-  // Lọc đơn hàng theo thời gian (24 giờ hoặc 7 ngày)
-  const filterOrdersByTime = (orders, timeFilter) => {
-    const now = new Date();
-    let timeThreshold;
-    
-    if (timeFilter === 'day') {
-      // 24 giờ qua
-      timeThreshold = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-    } else {
-      // 7 ngày qua
-      timeThreshold = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-    }
-    
-    return orders.filter(order => new Date(order.createdAt) >= timeThreshold);
-  };
-
   useEffect(() => {
     fetchOrders();
     

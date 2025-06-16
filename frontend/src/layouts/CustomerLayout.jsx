@@ -27,9 +27,8 @@ import {
   LocalDining as LocalDiningIcon
 } from '@mui/icons-material';
 import { Link as RouterLink, useNavigate, useLocation } from 'react-router-dom';
-import ReviewReminder from '../components/ReviewReminder';
 
-const CustomerLayout = () => {
+const CustomerLayout = ({ children }) => {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const { getItemCount, tableId } = useCart();
   const navigate = useNavigate();
@@ -112,10 +111,8 @@ const CustomerLayout = () => {
       </Drawer>
 
       <Box marginTop={'50px'}>
-        <Outlet />
+        {children || <Outlet />}
       </Box>
-
-      <ReviewReminder />
 
       <Box component="footer" sx={{ py: 2, bgcolor: 'background.paper', textAlign: 'center', width: '99%' }}>
         <Typography variant="body2" color="text.secondary">

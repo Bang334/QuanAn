@@ -58,7 +58,6 @@ const InventoryReportsPage = () => {
   const [usageStats, setUsageStats] = useState(null);
   const [purchaseCosts, setPurchaseCosts] = useState(null);
   const [supplierPerformance, setSupplierPerformance] = useState(null);
-  const [forecastData, setForecastData] = useState(null);
   
   // Fetch data on component mount and when date range changes
   useEffect(() => {
@@ -92,19 +91,17 @@ const InventoryReportsPage = () => {
         };
         
         // Fetch all report data
-        const [summary, usage, costs, suppliers, forecast] = await Promise.all([
+        const [summary, usage, costs, suppliers] = await Promise.all([
           inventoryService.getInventorySummary(),
           inventoryService.getIngredientUsageStats(dateParams),
           inventoryService.getPurchaseCostStats(dateParams),
-          inventoryService.getSupplierPerformance(dateParams),
-          inventoryService.getForecastReport()
+          inventoryService.getSupplierPerformance(dateParams)
         ]);
         
         setSummaryData(summary);
         setUsageStats(usage);
         setPurchaseCosts(costs);
         setSupplierPerformance(suppliers);
-        setForecastData(forecast);
       } catch (err) {
         setError(err.message || 'Có lỗi xảy ra khi tải dữ liệu báo cáo');
         showSnackbar('Có lỗi xảy ra khi tải dữ liệu báo cáo', 'error');
@@ -400,108 +397,6 @@ const InventoryReportsPage = () => {
     );
   };
 
-  // Render forecast chart
-  const renderForecastChart = () => {
-    if (!forecastData || !forecastData.ingredients || forecastData.ingredients.length === 0) {
-      return (
-        <Alert severity="info">
-          Không có dữ liệu dự báo nhu cầu nguyên liệu
-        </Alert>
-      );
-    }
-    
-    // Sort by forecast quantity
-    const sortedIngredients = [...forecastData.ingredients]
-      .sort((a, b) => b.forecastQuantity - a.forecastQuantity)
-      .slice(0, 10); // Top 10 ingredients
-    
-    return (
-      <Box>
-        <TableContainer component={Paper} variant="outlined" sx={{ mb: 4 }}>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>Nguyên liệu</TableCell>
-                <TableCell align="right">Tồn kho hiện tại</TableCell>
-                <TableCell align="right">Dự báo cần thiết</TableCell>
-                <TableCell align="right">Cần đặt thêm</TableCell>
-                <TableCell align="right">Đơn vị</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {sortedIngredients.map((ingredient) => (
-                <TableRow key={ingredient.id}>
-                  <TableCell>
-                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                      {ingredient.image ? (
-                        <Avatar
-                          src={ingredient.image}
-                          alt={ingredient.name}
-                          sx={{ width: 40, height: 40, mr: 2 }}
-                          variant="rounded"
-                        />
-                      ) : (
-                        <Avatar 
-                          sx={{ width: 40, height: 40, mr: 2, bgcolor: 'primary.light' }}
-                          variant="rounded"
-                        >
-                          {ingredient.name.charAt(0)}
-                        </Avatar>
-                      )}
-                      {ingredient.name}
-                    </Box>
-                  </TableCell>
-                  <TableCell align="right">{ingredient.currentStock}</TableCell>
-                  <TableCell align="right">{ingredient.forecastQuantity}</TableCell>
-                  <TableCell align="right">
-                    {Math.max(0, ingredient.forecastQuantity - ingredient.currentStock).toFixed(2)}
-                  </TableCell>
-                  <TableCell align="right">{ingredient.unit}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
-        
-        <Box sx={{ height: 400 }}>
-          <Bar 
-            data={{
-              labels: sortedIngredients.map(item => item.name),
-              datasets: [
-                {
-                  label: 'Lượng tồn kho hiện tại',
-                  data: sortedIngredients.map(item => item.currentStock),
-                  backgroundColor: 'rgba(53, 162, 235, 0.5)',
-                  borderColor: 'rgba(53, 162, 235, 1)',
-                  borderWidth: 1,
-                },
-                {
-                  label: 'Lượng dự báo cần thiết',
-                  data: sortedIngredients.map(item => item.forecastQuantity),
-                  backgroundColor: 'rgba(255, 99, 132, 0.5)',
-                  borderColor: 'rgba(255, 99, 132, 1)',
-                  borderWidth: 1,
-                },
-              ],
-            }}
-            options={{
-              responsive: true,
-              plugins: {
-                legend: {
-                  position: 'top',
-                },
-                title: {
-                  display: true,
-                  text: 'Dự báo nhu cầu nguyên liệu (30 ngày tới)',
-                },
-              },
-            }}
-          />
-        </Box>
-      </Box>
-    );
-  };
-
   // Render low stock ingredients table
   const renderLowStockTable = () => {
     if (!summaryData || !summaryData.lowStockIngredients || summaryData.lowStockIngredients.length === 0) {
@@ -634,7 +529,6 @@ const InventoryReportsPage = () => {
               <Tab icon={<BarChart />} iconPosition="start" label="Sử dụng nguyên liệu" />
               <Tab icon={<Timeline />} iconPosition="start" label="Chi phí mua nguyên liệu" />
               <Tab icon={<Assessment />} iconPosition="start" label="Hiệu quả nhà cung cấp" />
-              <Tab icon={<TrendingUp />} iconPosition="start" label="Dự báo nhu cầu" />
             </Tabs>
           </Paper>
 
@@ -673,15 +567,6 @@ const InventoryReportsPage = () => {
                   Đánh giá hiệu quả nhà cung cấp
                 </Typography>
                 {renderSupplierPerformanceChart()}
-              </>
-            )}
-            
-            {tabValue === 4 && (
-              <>
-                <Typography variant="h6" gutterBottom>
-                  Dự báo nhu cầu nguyên liệu (30 ngày tới)
-                </Typography>
-                {renderForecastChart()}
               </>
             )}
           </Paper>

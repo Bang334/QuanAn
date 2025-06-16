@@ -2,12 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { 
   Typography, Spin, message, Card, Table, Tag, Button, 
   Row, Col, DatePicker, Statistic, Space, Divider, Badge,
-  Empty, Tabs
+  Empty, Tabs, Modal, Input
 } from 'antd';
 import { 
   UserOutlined, CalendarOutlined, CheckCircleOutlined, 
   ClockCircleOutlined, ScheduleOutlined, FileSearchOutlined,
-  ReloadOutlined
+  ReloadOutlined, CloseOutlined, CheckOutlined
 } from '@ant-design/icons';
 import KitchenLayout from '../../layouts/KitchenLayout';
 import axios from 'axios';
@@ -17,7 +17,7 @@ import locale from 'antd/es/date-picker/locale/vi_VN';
 import { useAuth } from '../../contexts/AuthContext';
 
 const { Title, Text } = Typography;
-const { TabPane } = Tabs;
+const { TextArea } = Input;
 
 const KitchenAttendancePage = () => {
   const { currentUser } = useAuth();
@@ -33,6 +33,18 @@ const KitchenAttendancePage = () => {
     totalAttendances: 0,
     onTimeAttendances: 0
   });
+  
+  // State cho modal từ chối
+  const [rejectModalVisible, setRejectModalVisible] = useState(false);
+  const [rejectReason, setRejectReason] = useState('');
+  const [selectedScheduleId, setSelectedScheduleId] = useState(null);
+
+  // State cho modal đăng ký lịch làm việc
+  const [registerModalVisible, setRegisterModalVisible] = useState(false);
+  const [registerDate, setRegisterDate] = useState(null);
+  const [registerShift, setRegisterShift] = useState(null);
+  const [registerNote, setRegisterNote] = useState('');
+  const [registerLoading, setRegisterLoading] = useState(false);
 
   useEffect(() => {
     if (currentUser) {
@@ -85,7 +97,7 @@ const KitchenAttendancePage = () => {
       setLoading(false);
     }
   };
-  
+
   // Handle filter changes
   const handleMonthChange = (date) => {
     setSelectedMonth(date || dayjs());
@@ -109,6 +121,31 @@ const KitchenAttendancePage = () => {
       message.error('Không thể xác nhận lịch làm việc');
     }
   };
+  
+  // Hiển thị modal từ chối lịch làm việc
+  const showRejectModal = (scheduleId) => {
+    setSelectedScheduleId(scheduleId);
+    setRejectModalVisible(true);
+  };
+  
+  // Xử lý từ chối lịch làm việc
+  const handleRejectSchedule = async () => {
+    if (!selectedScheduleId) return;
+    
+    try {
+      await axios.put(`${API_URL}/api/schedule/reject/${selectedScheduleId}`, 
+        { reason: rejectReason },
+        { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
+      );
+      message.success('Đã từ chối lịch làm việc');
+      setRejectModalVisible(false);
+      setRejectReason('');
+      fetchData();
+    } catch (error) {
+      console.error("Error rejecting schedule:", error);
+      message.error('Không thể từ chối lịch làm việc');
+    }
+  };
 
   // Check in
   const handleCheckIn = async () => {
@@ -127,14 +164,23 @@ const KitchenAttendancePage = () => {
   // Check out
   const handleCheckOut = async () => {
     try {
-      await axios.post(`${API_URL}/api/attendance/check-out`, {}, {
+      const response = await axios.post(`${API_URL}/api/attendance/check-out`, {}, {
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
       });
       message.success('Chấm công kết thúc ca thành công');
       fetchData();
     } catch (error) {
       console.error("Error checking out:", error);
-      message.error('Không thể chấm công kết thúc ca');
+      
+      // Hiển thị thông báo lỗi chi tiết hơn
+      const errorMessage = error.response?.data?.message || 'Không thể chấm công kết thúc ca';
+      message.error(errorMessage);
+      
+      // Log thêm thông tin về lỗi để debug
+      if (error.response) {
+        console.log('Error status:', error.response.status);
+        console.log('Error data:', error.response.data);
+      }
     }
   };
 
@@ -224,6 +270,7 @@ const KitchenAttendancePage = () => {
           'confirmed': <Badge status="processing" text="Đã xác nhận" />,
           'completed': <Badge status="success" text="Đã hoàn thành" />,
           'cancelled': <Badge status="error" text="Đã hủy" />,
+          'rejected': <Badge status="error" text="Đã từ chối" />,
         };
         return statuses[status] || status;
       },
@@ -232,6 +279,7 @@ const KitchenAttendancePage = () => {
         { text: 'Đã xác nhận', value: 'confirmed' },
         { text: 'Đã hoàn thành', value: 'completed' },
         { text: 'Đã hủy', value: 'cancelled' },
+        { text: 'Đã từ chối', value: 'rejected' },
       ],
       onFilter: (value, record) => record.status === value,
     },
@@ -239,22 +287,55 @@ const KitchenAttendancePage = () => {
       title: 'Ghi chú',
       dataIndex: 'note',
       key: 'note',
-      render: (text) => text || '—',
+      render: (text, record) => (
+        <>
+          {text && <div>{text}</div>}
+          {record.rejectReason && (
+            <div>
+              <Text type="danger">Lý do từ chối: {record.rejectReason}</Text>
+            </div>
+          )}
+          {!text && !record.rejectReason && '—'}
+        </>
+      ),
     },
     {
       title: 'Thao tác',
       key: 'action',
-      render: (_, record) => (
-        record.status === 'scheduled' && (
-          <Button 
-            type="primary" 
-            size="small" 
-            onClick={() => handleConfirmSchedule(record.id)}
-          >
-            Xác nhận
-          </Button>
-        )
-      ),
+      render: (_, record) => {
+        if (record.status === 'scheduled') {
+          if (record.createdBy === 'staff') {
+            // Nhân viên tự đăng ký: chỉ cho phép hủy
+            return (
+              <Button danger size="small" onClick={() => handleCancelSchedule(record.id)}>
+                Hủy
+              </Button>
+            );
+          } else {
+            // Lịch do admin tạo: xác nhận hoặc từ chối
+            return (
+              <Space>
+                <Button 
+                  type="primary" 
+                  size="small" 
+                  onClick={() => handleConfirmSchedule(record.id)}
+                >
+                  Xác nhận
+                </Button>
+                <Button 
+                  danger
+                  size="small"
+                  icon={<CloseOutlined />}
+                  onClick={() => showRejectModal(record.id)}
+                >
+                  Từ chối
+                </Button>
+              </Space>
+            );
+          }
+        }
+        return null;
+      }
     },
   ];
 
@@ -326,18 +407,65 @@ const KitchenAttendancePage = () => {
     },
   ];
 
+  // Hàm mở modal đăng ký
+  const showRegisterModal = () => {
+    setRegisterDate(null);
+    setRegisterShift(null);
+    setRegisterNote('');
+    setRegisterModalVisible(true);
+  };
+
+  // Hàm gửi đăng ký lịch làm việc
+  const handleRegisterSchedule = async () => {
+    if (!registerDate || !registerShift) {
+      message.error('Vui lòng chọn ngày và ca làm việc!');
+      return;
+    }
+    setRegisterLoading(true);
+    try {
+      const res = await axios.post(`${API_URL}/api/schedule/register`, {
+        date: registerDate.format('YYYY-MM-DD'),
+        shift: registerShift,
+        note: registerNote
+      }, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      });
+      message.success(res.data?.message || 'Đăng ký lịch làm việc thành công!');
+      setRegisterModalVisible(false);
+      fetchData();
+    } catch (error) {
+      message.error(error.response?.data?.message || 'Đăng ký lịch làm việc thất bại!');
+    } finally {
+      setRegisterLoading(false);
+    }
+  };
+
+  // Thêm hàm hủy lịch làm việc
+  const handleCancelSchedule = async (scheduleId) => {
+    if (!scheduleId) return;
+    try {
+      await axios.delete(`${API_URL}/api/schedule/cancel/${scheduleId}`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      });
+      message.success('Đã hủy đăng ký ca làm việc!');
+      fetchData();
+    } catch (error) {
+      message.error(error.response?.data?.message || 'Hủy ca làm việc thất bại!');
+    }
+  };
+
   return (
     <KitchenLayout>
       <div style={{ position: 'relative', top: -85, left: -260 }}>
-        <Row gutter={[16, 16]} align="middle" justify="space-between" style={{ marginBottom: 24 }}>
+        <Row gutter={[16, 16]} align="middle" justify="space-between">
           <Col>
             <Title level={2} style={{ margin: 0 }}>
               <CalendarOutlined style={{ marginRight: 12 }} />
-              Lịch làm việc & Chấm công
+              Chấm công & Lịch làm việc
             </Title>
           </Col>
           <Col>
-            <Space size="large">
+            <Space>
               <DatePicker
                 picker="month"
                 locale={locale}
@@ -345,7 +473,6 @@ const KitchenAttendancePage = () => {
                 onChange={handleMonthChange}
                 format="MM/YYYY"
                 allowClear={false}
-                style={{ width: 120 }}
               />
               <Button 
                 type="default" 
@@ -357,89 +484,23 @@ const KitchenAttendancePage = () => {
             </Space>
           </Col>
         </Row>
-
+        
         {error && (
           <div style={{ 
             color: '#ff4d4f', 
-            marginBottom: 16, 
-            padding: 10, 
+            marginBottom: '20px', 
+            padding: '10px', 
             border: '1px solid #ffccc7', 
-            borderRadius: 4 
+            borderRadius: '4px' 
           }}>
             {error}
           </div>
         )}
-
-        {/* Today's Check-in/Check-out Card */}
-        <Card 
-          title="Chấm công hôm nay" 
-          style={{ marginBottom: 24, borderRadius: 8, boxShadow: '0 2px 8px rgba(0,0,0,0.09)' }}
-        >
-          <Row gutter={[16, 16]}>
-            <Col xs={24} md={16}>
-              {todaySchedule ? (
-                <div>
-                  <Text strong style={{ fontSize: 16 }}>
-                    Ca làm việc hôm nay:
-                  </Text>
-                  <div style={{ marginTop: 8 }}>
-                    {(() => {
-                      const shifts = {
-                        'morning': <Tag color="blue">Ca sáng</Tag>,
-                        'afternoon': <Tag color="green">Ca chiều</Tag>,
-                        'evening': <Tag color="purple">Ca tối</Tag>,
-                        'night': <Tag color="magenta">Ca đêm</Tag>,
-                        'full_day': <Tag color="red">Cả ngày</Tag>,
-                      };
-                      return shifts[todaySchedule.shift] || todaySchedule.shift;
-                    })()}
-                    <Text style={{ margin: '0 8px' }}>
-                      từ
-                    </Text>
-                    <Text strong>
-                      {todaySchedule.startTime || '—'}
-                    </Text>
-                    <Text style={{ margin: '0 8px' }}>
-                      đến
-                    </Text>
-                    <Text strong>
-                      {todaySchedule.endTime || '—'}
-                    </Text>
-                  </div>
-                </div>
-              ) : (
-                <Empty description="Không có lịch làm việc hôm nay" />
-              )}
-            </Col>
-            <Col xs={24} md={8} style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
-              {todaySchedule && !todayAttendance && (
-                <Button
-                  type="primary"
-                  size="large"
-                  icon={<ClockCircleOutlined />}
-                  onClick={handleCheckIn}
-                >
-                  Chấm công vào ca
-                </Button>
-              )}
-              {todayAttendance && !todayAttendance.timeOut && (
-                <Button
-                  danger
-                  size="large"
-                  icon={<ClockCircleOutlined />}
-                  onClick={handleCheckOut}
-                >
-                  Chấm công ra ca
-                </Button>
-              )}
-            </Col>
-          </Row>
-        </Card>
-
+        
         {/* Statistics Cards */}
-        <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
+        <Row gutter={[16, 16]} style={{ marginTop: '16px' }}>
           <Col xs={24} sm={12} md={6}>
-            <Card style={{ borderRadius: 8, boxShadow: '0 2px 8px rgba(0,0,0,0.09)' }}>
+            <Card variant="outlined" style={{ borderRadius: 8, boxShadow: '0 2px 8px rgba(0,0,0,0.09)' }}>
               <Statistic
                 title="Tổng số lịch làm việc"
                 value={stats.totalSchedules}
@@ -448,7 +509,7 @@ const KitchenAttendancePage = () => {
             </Card>
           </Col>
           <Col xs={24} sm={12} md={6}>
-            <Card style={{ borderRadius: 8, boxShadow: '0 2px 8px rgba(0,0,0,0.09)' }}>
+            <Card variant="outlined" style={{ borderRadius: 8, boxShadow: '0 2px 8px rgba(0,0,0,0.09)' }}>
               <Statistic
                 title="Lịch đã xác nhận"
                 value={stats.confirmedSchedules}
@@ -458,7 +519,7 @@ const KitchenAttendancePage = () => {
             </Card>
           </Col>
           <Col xs={24} sm={12} md={6}>
-            <Card style={{ borderRadius: 8, boxShadow: '0 2px 8px rgba(0,0,0,0.09)' }}>
+            <Card variant="outlined" style={{ borderRadius: 8, boxShadow: '0 2px 8px rgba(0,0,0,0.09)' }}>
               <Statistic
                 title="Tổng số chấm công"
                 value={stats.totalAttendances}
@@ -467,7 +528,7 @@ const KitchenAttendancePage = () => {
             </Card>
           </Col>
           <Col xs={24} sm={12} md={6}>
-            <Card style={{ borderRadius: 8, boxShadow: '0 2px 8px rgba(0,0,0,0.09)' }}>
+            <Card variant="outlined" style={{ borderRadius: 8, boxShadow: '0 2px 8px rgba(0,0,0,0.09)' }}>
               <Statistic
                 title="Đi làm đúng giờ"
                 value={stats.onTimeAttendances}
@@ -480,51 +541,162 @@ const KitchenAttendancePage = () => {
         
         <Spin spinning={loading}>
           <Card 
-            style={{ borderRadius: 8, boxShadow: '0 2px 8px rgba(0,0,0,0.09)', width: '100%', overflowX: 'auto' }}
-            tabList={[
-              {
-                key: 'schedule',
-                tab: (
-                  <span>
-                    <ScheduleOutlined /> Lịch làm việc
-                  </span>
-                ),
-              },
-              {
-                key: 'attendance',
-                tab: (
-                  <span>
-                    <FileSearchOutlined /> Lịch sử chấm công
-                  </span>
-                ),
-              },
-            ]}
-            activeTabKey={activeTab}
-            onTabChange={key => setActiveTab(key)}
+            variant="outlined"
+            style={{ marginTop: '16px', borderRadius: 8, boxShadow: '0 2px 8px rgba(0,0,0,0.09)' }}
           >
-            {activeTab === 'schedule' ? (
-              <Table 
-                dataSource={schedules} 
-                columns={scheduleColumns} 
-                rowKey={record => record.id || Math.random().toString()}
-                bordered 
-                pagination={{ pageSize: 10 }}
-                locale={{ emptyText: 'Không có dữ liệu lịch làm việc' }}
-                style={{ minWidth: '800px' }}
-              />
-            ) : (
-              <Table 
-                dataSource={attendances} 
-                columns={attendanceColumns} 
-                rowKey={record => record.id || Math.random().toString()}
-                bordered 
-                pagination={{ pageSize: 10 }}
-                locale={{ emptyText: 'Không có dữ liệu chấm công' }}
-                style={{ minWidth: '800px' }}
-              />
-            )}
+            <Tabs 
+              activeKey={activeTab} 
+              onChange={setActiveTab}
+              items={[
+                {
+                  key: 'schedule',
+                  label: (
+                    <span>
+                      <ScheduleOutlined /> Lịch làm việc
+                    </span>
+                  ),
+                  children: (
+                    <div>
+                      <Space style={{ marginBottom: 16 }}>
+                        <Button type="primary" onClick={showRegisterModal} icon={<ScheduleOutlined />}>Đăng ký lịch làm việc</Button>
+                        {todaySchedule && todaySchedule.status === 'scheduled' && (
+                          <>
+                            <Button 
+                              type="primary" 
+                              icon={<CheckOutlined />} 
+                              onClick={() => handleConfirmSchedule(todaySchedule.id)}
+                            >
+                              Xác nhận ca làm việc hôm nay
+                            </Button>
+                            <Button 
+                              danger 
+                              icon={<CloseOutlined />} 
+                              onClick={() => showRejectModal(todaySchedule.id)}
+                            >
+                              Từ chối
+                            </Button>
+                          </>
+                        )}
+                      </Space>
+                      
+                      <Table 
+                        dataSource={schedules} 
+                        columns={scheduleColumns}
+                        rowKey="id"
+                        pagination={{ pageSize: 10 }}
+                        bordered
+                      />
+                    </div>
+                  )
+                },
+                {
+                  key: 'attendance',
+                  label: (
+                    <span>
+                      <UserOutlined /> Chấm công
+                    </span>
+                  ),
+                  children: (
+                    <div>
+                      <Space style={{ marginBottom: 16 }}>
+                        {todaySchedule && (todaySchedule.status === 'confirmed' || todaySchedule.status === 'scheduled') && !todayAttendance && (
+                          <Button 
+                            type="primary" 
+                            onClick={handleCheckIn}
+                          >
+                            Chấm công vào ca
+                          </Button>
+                        )}
+                        
+                        {todayAttendance && !todayAttendance.timeOut && (
+                          <Button 
+                            type="primary" 
+                            danger 
+                            onClick={handleCheckOut}
+                          >
+                            Chấm công kết thúc ca
+                          </Button>
+                        )}
+                      </Space>
+                      
+                      <Table 
+                        dataSource={attendances} 
+                        columns={attendanceColumns}
+                        rowKey="id"
+                        pagination={{ pageSize: 10 }}
+                        bordered
+                      />
+                    </div>
+                  )
+                }
+              ]}
+            />
           </Card>
         </Spin>
+        
+        {/* Modal từ chối lịch làm việc */}
+        <Modal
+          title="Từ chối lịch làm việc"
+          visible={rejectModalVisible}
+          onOk={handleRejectSchedule}
+          onCancel={() => setRejectModalVisible(false)}
+          okText="Xác nhận từ chối"
+          cancelText="Hủy"
+        >
+          <p>Vui lòng nhập lý do từ chối lịch làm việc này:</p>
+          <TextArea
+            rows={4}
+            value={rejectReason}
+            onChange={e => setRejectReason(e.target.value)}
+            placeholder="Nhập lý do từ chối..."
+          />
+        </Modal>
+
+        {/* Modal đăng ký lịch làm việc */}
+        <Modal
+          title="Đăng ký lịch làm việc"
+          visible={registerModalVisible}
+          onOk={handleRegisterSchedule}
+          onCancel={() => setRegisterModalVisible(false)}
+          okText="Đăng ký"
+          cancelText="Hủy"
+          confirmLoading={registerLoading}
+        >
+          <div style={{ marginBottom: 12 }}>
+            <b>Chọn ngày:</b>
+            <DatePicker 
+              style={{ width: '100%' }} 
+              value={registerDate} 
+              onChange={setRegisterDate} 
+              format="DD/MM/YYYY" 
+              disabledDate={d => d && d < dayjs().startOf('day')}
+            />
+          </div>
+          <div style={{ marginBottom: 12 }}>
+            <b>Chọn ca làm việc:</b>
+            <select 
+              style={{ width: '100%', padding: 8, borderRadius: 4, border: '1px solid #d9d9d9' }}
+              value={registerShift || ''}
+              onChange={e => setRegisterShift(e.target.value)}
+            >
+              <option value="" disabled>Chọn ca</option>
+              <option value="morning">Ca sáng</option>
+              <option value="afternoon">Ca chiều</option>
+              <option value="evening">Ca tối</option>
+              <option value="night">Ca đêm</option>
+              <option value="full_day">Cả ngày</option>
+            </select>
+          </div>
+          <div>
+            <b>Ghi chú (nếu có):</b>
+            <TextArea 
+              rows={3} 
+              value={registerNote} 
+              onChange={e => setRegisterNote(e.target.value)} 
+              placeholder="Nhập ghi chú..." 
+            />
+          </div>
+        </Modal>
       </div>
     </KitchenLayout>
   );

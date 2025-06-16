@@ -11,6 +11,17 @@ export const getAllMenuItems = async () => {
   }
 };
 
+// Đồng bộ đánh giá của các món ăn
+export const syncMenuItemRatings = async () => {
+  try {
+    const response = await API.post('/reviews/sync-ratings');
+    return response.data;
+  } catch (error) {
+    console.error('Error syncing menu item ratings:', error);
+    throw error;
+  }
+};
+
 // Lấy món ăn theo ID
 export const getMenuItemById = async (id) => {
   try {

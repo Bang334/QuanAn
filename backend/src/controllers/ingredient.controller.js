@@ -1,6 +1,6 @@
 const { Ingredient, InventoryTransaction, User, IngredientPriceHistory, Supplier } = require('../models');
 const { Op } = require('sequelize');
-const { sequelize } = require('../config/database');
+const sequelize = require('../config/database');
 const { checkAllMenuItemsAvailability } = require('../scripts/check-menu-availability');
 
 // Get all ingredients
@@ -231,11 +231,10 @@ exports.adjustQuantity = async (req, res) => {
     await ingredient.update({ currentStock: newQuantity }, { transaction });
     
     // Tạo giao dịch kho
-    const transactionType = quantity > 0 ? 'adjustment_in' : 'adjustment_out';
     await InventoryTransaction.create({
       ingredientId: id,
       quantity: Math.abs(quantity),
-      type: transactionType,
+      type: 'adjustment',
       previousQuantity,
       newQuantity,
       notes: reason || `Manual adjustment by ${req.user.name}`,

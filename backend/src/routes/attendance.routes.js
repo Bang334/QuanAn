@@ -32,4 +32,10 @@ router.get('/admin/report', authenticateToken, isAdmin, attendanceController.get
 // Lấy thống kê chấm công tổng quan
 router.get('/admin/stats', authenticateToken, isAdmin, attendanceController.getAttendanceStats);
 
+// Đánh dấu vắng mặt tự động cho nhân viên không chấm công
+router.post('/admin/mark-absent', authenticateToken, isAdmin, attendanceController.runAbsentMarking);
+
+// Tự động reject lịch làm việc khi thời gian vào ca cách thời gian hiện tại dưới 1 tiếng
+router.post('/admin/auto-reject', authenticateToken, isAdmin, attendanceController.runAutoReject);
+
 module.exports = router; 

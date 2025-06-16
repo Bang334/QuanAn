@@ -8,7 +8,7 @@ import {
   UserOutlined, CalendarOutlined, CheckCircleOutlined, 
   ClockCircleOutlined, ScheduleOutlined, FileSearchOutlined,
   ReloadOutlined, PlusOutlined, FilterOutlined, ExclamationCircleOutlined,
-  QuestionCircleOutlined
+  QuestionCircleOutlined, EditOutlined, DeleteOutlined, BarChartOutlined
 } from '@ant-design/icons';
 import AdminLayout from '../../layouts/AdminLayout';
 import axios from 'axios';
@@ -16,9 +16,12 @@ import { API_URL } from '../../config';
 import dayjs from 'dayjs';
 import locale from 'antd/es/date-picker/locale/vi_VN';
 import { Box, Paper, Container } from '@mui/material';
+import { getAllAttendances } from '../../services/attendanceService';
+import { 
+  getAllSchedules, createSchedule, updateSchedule, deleteSchedule 
+} from '../../services/scheduleService';
 
 const { Title, Text } = Typography;
-const { TabPane } = Tabs;
 const { Option } = Select;
 const { RangePicker } = DatePicker;
 const { confirm } = Modal;
@@ -60,89 +63,67 @@ const AdminAttendancePage = () => {
     full_day: { total: 0, users: [] }
   });
 
+  // Effect để fetch lại dữ liệu khi các giá trị lọc thay đổi
   useEffect(() => {
-    fetchData();
+    if (users.length > 0) {  // Chỉ fetch dữ liệu khi danh sách users đã được tải
+      fetchData();
+    }
   }, [selectedMonth, selectedUser]);
 
+  useEffect(() => {
+    // Fetch các dữ liệu cần thiết khi component mount
+    const fetchInitialData = async () => {
+      try {
+        setLoading(true);
+        
+        // Lấy danh sách người dùng
+        const usersResponse = await axios.get(`${API_URL}/api/users`, {
+          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+        });
+        
+        // Lọc chỉ lấy nhân viên bếp và phục vụ
+        const staffUsers = usersResponse.data.filter(user => 
+          user.role === 'kitchen' || user.role === 'waiter'
+        );
+        setUsers(staffUsers);
+        
+        // Lấy dữ liệu attendances và schedules
+        fetchData();
+      } catch (error) {
+        console.error("Error fetching users:", error);
+        setError("Không thể tải thông tin người dùng");
+        setLoading(false);
+      }
+    };
+    
+    fetchInitialData();
+    
+    // Thiết lập ngày mặc định cho modal thống kê theo ngày
+    setSelectedDate(dayjs());
+  }, []);
+
   const fetchData = async () => {
+    setLoading(true);
     try {
-      setLoading(true);
-      setError(null);
-      
-      // Lấy danh sách người dùng
-      const usersResponse = await axios.get(`${API_URL}/api/users`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-      });
-      
-      // Lọc chỉ lấy nhân viên bếp và phục vụ
-      const staffUsers = usersResponse.data.filter(user => 
-        user.role === 'kitchen' || user.role === 'waiter'
-      );
-      setUsers(staffUsers);
-      
-      // Tạo tham số truy vấn
+      // Lấy thông tin tháng năm cho filter
       const month = selectedMonth.month() + 1;
       const year = selectedMonth.year();
-      const userId = selectedUser;
-      
-      const queryParams = new URLSearchParams();
-      queryParams.append('month', month);
-      queryParams.append('year', year);
-      if (userId) queryParams.append('userId', userId);
-      
-      // Lấy danh sách lịch làm việc
-      const schedulesResponse = await axios.get(`${API_URL}/api/schedule/admin?${queryParams}`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-      });
-      
-      setSchedules(schedulesResponse.data);
       
       // Lấy danh sách chấm công
-      const attendancesResponse = await axios.get(`${API_URL}/api/attendance/admin?${queryParams}`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-      });
+      const attendanceData = await getAllAttendances(null, selectedUser, month, year, null);
+      setAttendances(attendanceData);
+
+      // Lấy danh sách lịch làm việc
+      const scheduleData = await getAllSchedules(null, selectedUser, month, year, null, null);
+      setSchedules(scheduleData);
       
-      // Bổ sung thông tin giờ vào/ra nếu chưa có
-      const enhancedAttendances = attendancesResponse.data.map(attendance => {
-        if (!attendance.timeIn) {
-          // Thêm giờ vào ngẫu nhiên từ 7:00 - 8:30 sáng
-          const hour = Math.floor(Math.random() * 2) + 7;
-          const minute = Math.floor(Math.random() * 60);
-          attendance.timeIn = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
-        }
-        
-        if (!attendance.timeOut) {
-          // Thêm giờ ra ngẫu nhiên từ 17:00 - 18:30 chiều
-          const hour = Math.floor(Math.random() * 2) + 17;
-          const minute = Math.floor(Math.random() * 60);
-          attendance.timeOut = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
-        }
-        
-        return attendance;
-      });
-      
-      setAttendances(enhancedAttendances);
-      
-      // Calculate statistics
-      const totalSchedules = schedulesResponse.data.length;
-      const confirmedSchedules = schedulesResponse.data.filter(s => s.status === 'confirmed' || s.status === 'completed').length;
-      const totalAttendances = enhancedAttendances.length;
-      const onTimeAttendances = enhancedAttendances.filter(a => a.status === 'present').length;
-      
-      setStats({
-        totalSchedules,
-        confirmedSchedules,
-        totalAttendances,
-        onTimeAttendances
-      });
-      
-      // Tính toán thống kê theo ngày cho ngày hiện tại
-      calculateDailyStats(selectedDate);
-      
-    } catch (error) {
-      console.error("Error fetching data:", error);
-      setError(`Lỗi khi tải dữ liệu: ${error.message}`);
-      message.error('Không thể tải dữ liệu');
+      // Cập nhật thống kê
+      calculateStats(attendanceData, scheduleData);
+
+      setError(null);
+    } catch (err) {
+      console.error("Error fetching data:", err);
+      setError("Không thể tải dữ liệu. Vui lòng thử lại sau.");
     } finally {
       setLoading(false);
     }
@@ -275,6 +256,12 @@ const AdminAttendancePage = () => {
       },
       sorter: (a, b) => new Date(a.date) - new Date(b.date),
       defaultSortOrder: 'ascend',
+      filters: Array.from(new Set(schedules.map(s => dayjs(s.date).format('YYYY-MM-DD')))).map(dateStr => ({
+        text: dayjs(dateStr).format('DD/MM/YYYY'),
+        value: dateStr
+      })),
+      onFilter: (value, record) => dayjs(record.date).format('YYYY-MM-DD') === value,
+      filteredValue: Array.from(new Set(schedules.map(s => dayjs(s.date).format('YYYY-MM-DD')))).includes(dayjs().format('YYYY-MM-DD')) ? [dayjs().format('YYYY-MM-DD')] : null,
     },
     {
       title: 'Ca làm việc',
@@ -295,7 +282,6 @@ const AdminAttendancePage = () => {
         { text: 'Ca chiều', value: 'afternoon' },
         { text: 'Ca tối', value: 'evening' },
         { text: 'Ca đêm', value: 'night' },
-        { text: 'Cả ngày', value: 'full_day' },
       ],
       onFilter: (value, record) => record.shift === value,
     },
@@ -318,7 +304,6 @@ const AdminAttendancePage = () => {
         const statuses = {
           'scheduled': <Badge status="default" text="Đã lên lịch" />,
           'confirmed': <Badge status="processing" text="Đã xác nhận" />,
-          'completed': <Badge status="success" text="Đã hoàn thành" />,
           'cancelled': <Badge status="error" text="Đã hủy" />,
         };
         return statuses[status] || status;
@@ -326,35 +311,58 @@ const AdminAttendancePage = () => {
       filters: [
         { text: 'Đã lên lịch', value: 'scheduled' },
         { text: 'Đã xác nhận', value: 'confirmed' },
-        { text: 'Đã hoàn thành', value: 'completed' },
         { text: 'Đã hủy', value: 'cancelled' },
       ],
       onFilter: (value, record) => record.status === value,
     },
     {
-      title: 'Ghi chú',
-      dataIndex: 'note',
-      key: 'note',
-      render: (text) => text || '—',
+      title: 'Tạo bởi',
+      dataIndex: 'createdBy',
+      key: 'createdBy',
+      render: (text) => text === 'admin' ? 'Admin' : text === 'staff' ? 'Nhân viên' : text || '—',
+      filters: [
+        { text: 'Admin', value: 'admin' },
+        { text: 'Nhân viên', value: 'staff' },
+      ],
+      onFilter: (value, record) => record.createdBy === value,
     },
     {
       title: 'Thao tác',
       key: 'action',
-      render: (_, record) => (
-        <Space>
-          <Button type="primary" size="small" onClick={() => handleEditSchedule(record)}>Sửa</Button>
-          <Popconfirm
-            title="Xác nhận xóa"
-            description="Bạn có chắc chắn muốn xóa lịch làm việc này không?"
-            icon={<QuestionCircleOutlined style={{ color: 'red' }} />}
-            onConfirm={() => handleDeleteSchedule(record.id)}
-            okText="Xóa"
-            cancelText="Hủy"
-          >
-            <Button danger size="small">Xóa</Button>
-          </Popconfirm>
-        </Space>
-      ),
+      render: (_, record) => {
+        if (record.status === 'scheduled' && record.createdBy === 'staff') {
+          return (
+            <Space>
+              <Button type="primary" size="small" onClick={() => handleAcceptSchedule(record.id)}>
+                Chấp nhận
+              </Button>
+              <Button danger size="small" onClick={() => handleRejectSchedule(record.id)}>
+                Từ chối
+              </Button>
+            </Space>
+          );
+        }
+        // Nếu được tạo bởi admin, hiển thị Sửa/Xóa như mặc định
+        if (record.createdBy === 'admin') {
+          return (
+            <Space>
+              <Button type="primary" size="small" onClick={() => handleEditSchedule(record)}>Sửa</Button>
+              <Popconfirm
+                title="Xác nhận xóa"
+                description="Bạn có chắc chắn muốn xóa lịch làm việc này không?"
+                icon={<QuestionCircleOutlined style={{ color: 'red' }} />}
+                onConfirm={() => handleDeleteSchedule(record.id)}
+                okText="Xóa"
+                cancelText="Hủy"
+              >
+                <Button danger size="small">Xóa</Button>
+              </Popconfirm>
+            </Space>
+          );
+        }
+        // Trường hợp khác (nếu có)
+        return null;
+      },
     },
   ];
 
@@ -446,25 +454,6 @@ const AdminAttendancePage = () => {
       key: 'note',
       render: (text) => text || '—',
     },
-    {
-      title: 'Thao tác',
-      key: 'action',
-      render: (_, record) => (
-        <Space>
-          <Button type="primary" size="small" onClick={() => handleEditAttendance(record)}>Sửa</Button>
-          <Popconfirm
-            title="Xác nhận xóa"
-            description="Bạn có chắc chắn muốn xóa dữ liệu chấm công này không?"
-            icon={<QuestionCircleOutlined style={{ color: 'red' }} />}
-            onConfirm={() => handleDeleteAttendance(record.id)}
-            okText="Xóa"
-            cancelText="Hủy"
-          >
-            <Button danger size="small">Xóa</Button>
-          </Popconfirm>
-        </Space>
-      ),
-    },
   ];
 
   // Xử lý các chức năng lịch làm việc
@@ -474,8 +463,6 @@ const AdminAttendancePage = () => {
       userId: record.userId,
       date: dayjs(record.date),
       shift: record.shift,
-      startTime: record.startTime ? dayjs(record.date + ' ' + record.startTime) : null,
-      endTime: record.endTime ? dayjs(record.date + ' ' + record.endTime) : null,
       status: record.status,
       note: record.note
     });
@@ -503,22 +490,22 @@ const AdminAttendancePage = () => {
       // Format data
       const formattedValues = {
         userId: values.userId,
-        date: values.date.format('YYYY-MM-DD'),
+        date: values.date,  // Giữ nguyên đối tượng dayjs, để scheduleService xử lý
         shift: values.shift,
-        startTime: values.startTime ? values.startTime.format('HH:mm') : null,
-        endTime: values.endTime ? values.endTime.format('HH:mm') : null,
-        status: values.status,
+        status: editingSchedule ? values.status || 'scheduled' : 'scheduled',
         note: values.note
       };
       
-      // Update or create schedule record
+      // Kiểm tra dữ liệu trước khi gửi
+      if (!formattedValues.userId || !formattedValues.date || !formattedValues.shift) {
+        message.error('Vui lòng điền đầy đủ thông tin người dùng, ngày và ca làm việc');
+        return;
+      }
+      
+      // Gọi service thay vì API trực tiếp
       const apiCall = editingSchedule && editingSchedule.id
-        ? axios.put(`${API_URL}/api/schedule/admin/${editingSchedule.id}`, formattedValues, {
-            headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-          })
-        : axios.post(`${API_URL}/api/schedule/admin/create`, formattedValues, {
-            headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-          });
+        ? updateSchedule(editingSchedule.id, formattedValues)
+        : createSchedule(formattedValues);
       
       apiCall
         .then(() => {
@@ -528,7 +515,8 @@ const AdminAttendancePage = () => {
         })
         .catch(error => {
           console.error("Error saving schedule:", error);
-          message.error(`Không thể ${editingSchedule ? 'cập nhật' : 'tạo mới'} dữ liệu: ` + error.message);
+          const errorMessage = error.message || `Không thể ${editingSchedule ? 'cập nhật' : 'tạo mới'} dữ liệu`;
+          message.error(errorMessage);
         });
     });
   };
@@ -536,9 +524,12 @@ const AdminAttendancePage = () => {
   const handleAddNewSchedule = () => {
     setEditingSchedule(null);
     scheduleForm.resetFields();
+    
+    const currentDate = dayjs();
+    console.log("Setting initial date:", currentDate.format('YYYY-MM-DD'));
+    
     scheduleForm.setFieldsValue({
-      date: dayjs(),
-      status: 'scheduled'
+      date: currentDate
     });
     setIsScheduleModalVisible(true);
     message.info('Đang tạo lịch làm việc mới');
@@ -553,10 +544,14 @@ const AdminAttendancePage = () => {
 
   const handleDateChange = (date) => {
     setSelectedDate(date);
-    calculateDailyStats(date);
+    if (date) {
+      calculateDailyStats(date);
+    }
   };
 
   const calculateDailyStats = (date) => {
+    if (!date) return;
+    
     const formattedDate = date.format('YYYY-MM-DD');
     
     // Lọc lịch làm việc theo ngày đã chọn
@@ -569,8 +564,7 @@ const AdminAttendancePage = () => {
       morning: { total: 0, users: [] },
       afternoon: { total: 0, users: [] },
       evening: { total: 0, users: [] },
-      night: { total: 0, users: [] },
-      full_day: { total: 0, users: [] }
+      night: { total: 0, users: [] }
     };
     
     // Tính toán thống kê cho từng ca
@@ -589,27 +583,24 @@ const AdminAttendancePage = () => {
           status: schedule.status
         });
       }
-      
-      // Nếu là ca cả ngày, cũng tính vào các ca khác để hiển thị đầy đủ
-      if (shift === 'full_day') {
-        ['morning', 'afternoon', 'evening'].forEach(s => {
-          if (user && newStats[s]) {
-            // Đánh dấu là nhân viên full_day
-            newStats[s].users.push({
-              id: user.id,
-              name: user.name,
-              role: user.role,
-              startTime: schedule.startTime,
-              endTime: schedule.endTime,
-              status: schedule.status,
-              isFullDay: true
-            });
-          }
-        });
-      }
     });
     
     setDailyStats(newStats);
+  };
+
+  const calculateStats = (attendanceData, scheduleData) => {
+    // Calculate statistics
+    const totalSchedules = scheduleData.length;
+    const confirmedSchedules = scheduleData.filter(s => s.status === 'confirmed' || s.status === 'completed').length;
+    const totalAttendances = attendanceData.length;
+    const onTimeAttendances = attendanceData.filter(a => a.status === 'present').length;
+    
+    setStats({
+      totalSchedules,
+      confirmedSchedules,
+      totalAttendances,
+      onTimeAttendances
+    });
   };
 
   return (
@@ -695,7 +686,7 @@ const AdminAttendancePage = () => {
             {/* Statistics Cards */}
             <Box component={Row} sx={{ marginBottom: 3 }} gutter={[16, 16]}>
               <Col xs={24} sm={12} md={6}>
-                <Card style={{ borderRadius: 8, boxShadow: '0 2px 8px rgba(0,0,0,0.09)' }}>
+                <Card style={{ borderRadius: 8, boxShadow: '0 2px 8px rgba(0,0,0,0.09)' }} variant="outlined">
                   <Statistic
                     title="Tổng số lịch làm việc"
                     value={stats.totalSchedules}
@@ -704,7 +695,7 @@ const AdminAttendancePage = () => {
                 </Card>
               </Col>
               <Col xs={24} sm={12} md={6}>
-                <Card style={{ borderRadius: 8, boxShadow: '0 2px 8px rgba(0,0,0,0.09)' }}>
+                <Card style={{ borderRadius: 8, boxShadow: '0 2px 8px rgba(0,0,0,0.09)' }} variant="outlined">
                   <Statistic
                     title="Lịch đã xác nhận"
                     value={stats.confirmedSchedules}
@@ -714,7 +705,7 @@ const AdminAttendancePage = () => {
                 </Card>
               </Col>
               <Col xs={24} sm={12} md={6}>
-                <Card style={{ borderRadius: 8, boxShadow: '0 2px 8px rgba(0,0,0,0.09)' }}>
+                <Card style={{ borderRadius: 8, boxShadow: '0 2px 8px rgba(0,0,0,0.09)' }} variant="outlined">
                   <Statistic
                     title="Tổng số chấm công"
                     value={stats.totalAttendances}
@@ -723,7 +714,7 @@ const AdminAttendancePage = () => {
                 </Card>
               </Col>
               <Col xs={24} sm={12} md={6}>
-                <Card style={{ borderRadius: 8, boxShadow: '0 2px 8px rgba(0,0,0,0.09)' }}>
+                <Card style={{ borderRadius: 8, boxShadow: '0 2px 8px rgba(0,0,0,0.09)' }} variant="outlined">
                   <Statistic
                     title="Đi làm đúng giờ"
                     value={stats.onTimeAttendances}
@@ -737,6 +728,7 @@ const AdminAttendancePage = () => {
             <Spin spinning={loading}>
               <Card 
                 style={{ borderRadius: 8, boxShadow: '0 2px 8px rgba(0,0,0,0.09)', width: '100%', overflowX: 'auto' }}
+                variant="outlined"
                 tabList={[
                   {
                     key: 'schedule',
@@ -879,7 +871,10 @@ const AdminAttendancePage = () => {
               cancelText="Hủy"
               zIndex={1000}
             >
-              <Form form={scheduleForm} layout="vertical">
+              <Form
+                form={scheduleForm}
+                layout="vertical"
+              >
                 <Form.Item
                   name="userId"
                   label="Nhân viên"
@@ -888,7 +883,7 @@ const AdminAttendancePage = () => {
                   <Select placeholder="Chọn nhân viên">
                     {users.map(user => (
                       <Option key={user.id} value={user.id}>
-                        {user.name} ({user.role === 'kitchen' ? 'Bếp' : 'Phục vụ'})
+                        {user.name} ({user.role === 'kitchen' ? 'Bếp' : user.role === 'waiter' ? 'Phục vụ' : user.role})
                       </Option>
                     ))}
                   </Select>
@@ -899,7 +894,14 @@ const AdminAttendancePage = () => {
                   label="Ngày"
                   rules={[{ required: true, message: 'Vui lòng chọn ngày' }]}
                 >
-                  <DatePicker locale={locale} format="DD/MM/YYYY" style={{ width: '100%' }} />
+                  <DatePicker 
+                    format="YYYY-MM-DD"
+                    style={{ width: '100%' }} 
+                    locale={locale}
+                    onChange={(date) => {
+                      console.log("Selected date:", date ? date.format('YYYY-MM-DD') : null);
+                    }}
+                  />
                 </Form.Item>
                 
                 <Form.Item
@@ -908,45 +910,26 @@ const AdminAttendancePage = () => {
                   rules={[{ required: true, message: 'Vui lòng chọn ca làm việc' }]}
                 >
                   <Select placeholder="Chọn ca làm việc">
-                    <Option value="morning">Ca sáng</Option>
-                    <Option value="afternoon">Ca chiều</Option>
-                    <Option value="evening">Ca tối</Option>
-                    <Option value="night">Ca đêm</Option>
-                    <Option value="full_day">Cả ngày</Option>
+                    <Option value="morning">Ca sáng (6:00 - 12:00)</Option>
+                    <Option value="afternoon">Ca chiều (12:00 - 18:00)</Option>
+                    <Option value="evening">Ca tối (18:00 - 00:00)</Option>
+                    <Option value="night">Ca đêm (00:00 - 6:00)</Option>
                   </Select>
                 </Form.Item>
                 
-                <Row gutter={16}>
-                  <Col span={12}>
-                    <Form.Item
-                      name="startTime"
-                      label="Giờ bắt đầu"
-                    >
-                      <TimePicker format="HH:mm" style={{ width: '100%' }} />
-                    </Form.Item>
-                  </Col>
-                  <Col span={12}>
-                    <Form.Item
-                      name="endTime"
-                      label="Giờ kết thúc"
-                    >
-                      <TimePicker format="HH:mm" style={{ width: '100%' }} />
-                    </Form.Item>
-                  </Col>
-                </Row>
-                
-                <Form.Item
-                  name="status"
-                  label="Trạng thái"
-                  rules={[{ required: true, message: 'Vui lòng chọn trạng thái' }]}
-                >
-                  <Select placeholder="Chọn trạng thái">
-                    <Option value="scheduled">Đã lên lịch</Option>
-                    <Option value="confirmed">Đã xác nhận</Option>
-                    <Option value="completed">Đã hoàn thành</Option>
-                    <Option value="cancelled">Đã hủy</Option>
-                  </Select>
-                </Form.Item>
+                {editingSchedule && (
+                  <Form.Item
+                    name="status"
+                    label="Trạng thái"
+                    rules={[{ required: true, message: 'Vui lòng chọn trạng thái' }]}
+                  >
+                    <Select placeholder="Chọn trạng thái">
+                      <Option value="scheduled">Đã lên lịch</Option>
+                      <Option value="confirmed">Đã xác nhận</Option>
+                      <Option value="cancelled">Đã hủy</Option>
+                    </Select>
+                  </Form.Item>
+                )}
                 
                 <Form.Item
                   name="note"
@@ -978,294 +961,248 @@ const AdminAttendancePage = () => {
                   locale={locale}
                 />
                 
-                <Divider orientation="left">Thống kê theo ca làm việc ngày {selectedDate.format('DD/MM/YYYY')}</Divider>
+                <Divider orientation="left">Thống kê theo ca làm việc ngày {selectedDate ? selectedDate.format('DD/MM/YYYY') : ''}</Divider>
                 
-                <Tabs defaultActiveKey="morning">
-                  <TabPane tab="Ca sáng" key="morning">
-                    <Card title={`Ca sáng (${dailyStats.morning.total} nhân viên)`} bordered={false}>
-                      {dailyStats.morning.users.length > 0 ? (
-                        <Table 
-                          dataSource={dailyStats.morning.users} 
-                          pagination={false}
-                          rowKey="id"
-                          columns={[
-                            {
-                              title: 'Nhân viên',
-                              dataIndex: 'name',
-                              key: 'name',
-                              render: (text, record) => (
-                                <div>
-                                  <Text strong>{text}</Text>
-                                  {record.isFullDay && <Tag color="red" style={{ marginLeft: 8 }}>Cả ngày</Tag>}
-                                </div>
-                              )
-                            },
-                            {
-                              title: 'Vị trí',
-                              dataIndex: 'role',
-                              key: 'role',
-                              render: (role) => (
-                                <Tag color={role === 'kitchen' ? 'orange' : 'blue'}>
-                                  {role === 'kitchen' ? 'Bếp' : 'Phục vụ'}
-                                </Tag>
-                              )
-                            },
-                            {
-                              title: 'Thời gian',
-                              key: 'time',
-                              render: (_, record) => (
-                                <Text>{record.startTime || '—'} - {record.endTime || '—'}</Text>
-                              )
-                            },
-                            {
-                              title: 'Trạng thái',
-                              dataIndex: 'status',
-                              key: 'status',
-                              render: (status) => {
-                                const statuses = {
-                                  'scheduled': <Badge status="default" text="Đã lên lịch" />,
-                                  'confirmed': <Badge status="processing" text="Đã xác nhận" />,
-                                  'completed': <Badge status="success" text="Đã hoàn thành" />,
-                                  'cancelled': <Badge status="error" text="Đã hủy" />
-                                };
-                                return statuses[status] || status;
-                              }
-                            }
-                          ]} 
-                        />
-                      ) : (
-                        <Empty description="Không có nhân viên nào làm ca sáng" />
-                      )}
-                    </Card>
-                  </TabPane>
-                  
-                  <TabPane tab="Ca chiều" key="afternoon">
-                    <Card title={`Ca chiều (${dailyStats.afternoon.total} nhân viên)`} bordered={false}>
-                      {dailyStats.afternoon.users.length > 0 ? (
-                        <Table 
-                          dataSource={dailyStats.afternoon.users} 
-                          pagination={false}
-                          rowKey="id"
-                          columns={[
-                            {
-                              title: 'Nhân viên',
-                              dataIndex: 'name',
-                              key: 'name',
-                              render: (text, record) => (
-                                <div>
-                                  <Text strong>{text}</Text>
-                                  {record.isFullDay && <Tag color="red" style={{ marginLeft: 8 }}>Cả ngày</Tag>}
-                                </div>
-                              )
-                            },
-                            {
-                              title: 'Vị trí',
-                              dataIndex: 'role',
-                              key: 'role',
-                              render: (role) => (
-                                <Tag color={role === 'kitchen' ? 'orange' : 'blue'}>
-                                  {role === 'kitchen' ? 'Bếp' : 'Phục vụ'}
-                                </Tag>
-                              )
-                            },
-                            {
-                              title: 'Thời gian',
-                              key: 'time',
-                              render: (_, record) => (
-                                <Text>{record.startTime || '—'} - {record.endTime || '—'}</Text>
-                              )
-                            },
-                            {
-                              title: 'Trạng thái',
-                              dataIndex: 'status',
-                              key: 'status',
-                              render: (status) => {
-                                const statuses = {
-                                  'scheduled': <Badge status="default" text="Đã lên lịch" />,
-                                  'confirmed': <Badge status="processing" text="Đã xác nhận" />,
-                                  'completed': <Badge status="success" text="Đã hoàn thành" />,
-                                  'cancelled': <Badge status="error" text="Đã hủy" />
-                                };
-                                return statuses[status] || status;
-                              }
-                            }
-                          ]} 
-                        />
-                      ) : (
-                        <Empty description="Không có nhân viên nào làm ca chiều" />
-                      )}
-                    </Card>
-                  </TabPane>
-                  
-                  <TabPane tab="Ca tối" key="evening">
-                    <Card title={`Ca tối (${dailyStats.evening.total} nhân viên)`} bordered={false}>
-                      {dailyStats.evening.users.length > 0 ? (
-                        <Table 
-                          dataSource={dailyStats.evening.users} 
-                          pagination={false}
-                          rowKey="id"
-                          columns={[
-                            {
-                              title: 'Nhân viên',
-                              dataIndex: 'name',
-                              key: 'name',
-                              render: (text, record) => (
-                                <div>
-                                  <Text strong>{text}</Text>
-                                  {record.isFullDay && <Tag color="red" style={{ marginLeft: 8 }}>Cả ngày</Tag>}
-                                </div>
-                              )
-                            },
-                            {
-                              title: 'Vị trí',
-                              dataIndex: 'role',
-                              key: 'role',
-                              render: (role) => (
-                                <Tag color={role === 'kitchen' ? 'orange' : 'blue'}>
-                                  {role === 'kitchen' ? 'Bếp' : 'Phục vụ'}
-                                </Tag>
-                              )
-                            },
-                            {
-                              title: 'Thời gian',
-                              key: 'time',
-                              render: (_, record) => (
-                                <Text>{record.startTime || '—'} - {record.endTime || '—'}</Text>
-                              )
-                            },
-                            {
-                              title: 'Trạng thái',
-                              dataIndex: 'status',
-                              key: 'status',
-                              render: (status) => {
-                                const statuses = {
-                                  'scheduled': <Badge status="default" text="Đã lên lịch" />,
-                                  'confirmed': <Badge status="processing" text="Đã xác nhận" />,
-                                  'completed': <Badge status="success" text="Đã hoàn thành" />,
-                                  'cancelled': <Badge status="error" text="Đã hủy" />
-                                };
-                                return statuses[status] || status;
-                              }
-                            }
-                          ]} 
-                        />
-                      ) : (
-                        <Empty description="Không có nhân viên nào làm ca tối" />
-                      )}
-                    </Card>
-                  </TabPane>
-
-                  <TabPane tab="Ca đêm" key="night">
-                    <Card title={`Ca đêm (${dailyStats.night.total} nhân viên)`} bordered={false}>
-                      {dailyStats.night.users.length > 0 ? (
-                        <Table 
-                          dataSource={dailyStats.night.users} 
-                          pagination={false}
-                          rowKey="id"
-                          columns={[
-                            {
-                              title: 'Nhân viên',
-                              dataIndex: 'name',
-                              key: 'name',
-                              render: (text, record) => (
-                                <div>
-                                  <Text strong>{text}</Text>
-                                  {record.isFullDay && <Tag color="red" style={{ marginLeft: 8 }}>Cả ngày</Tag>}
-                                </div>
-                              )
-                            },
-                            {
-                              title: 'Vị trí',
-                              dataIndex: 'role',
-                              key: 'role',
-                              render: (role) => (
-                                <Tag color={role === 'kitchen' ? 'orange' : 'blue'}>
-                                  {role === 'kitchen' ? 'Bếp' : 'Phục vụ'}
-                                </Tag>
-                              )
-                            },
-                            {
-                              title: 'Thời gian',
-                              key: 'time',
-                              render: (_, record) => (
-                                <Text>{record.startTime || '—'} - {record.endTime || '—'}</Text>
-                              )
-                            },
-                            {
-                              title: 'Trạng thái',
-                              dataIndex: 'status',
-                              key: 'status',
-                              render: (status) => {
-                                const statuses = {
-                                  'scheduled': <Badge status="default" text="Đã lên lịch" />,
-                                  'confirmed': <Badge status="processing" text="Đã xác nhận" />,
-                                  'completed': <Badge status="success" text="Đã hoàn thành" />,
-                                  'cancelled': <Badge status="error" text="Đã hủy" />
-                                };
-                                return statuses[status] || status;
-                              }
-                            }
-                          ]} 
-                        />
-                      ) : (
-                        <Empty description="Không có nhân viên nào làm ca đêm" />
-                      )}
-                    </Card>
-                  </TabPane>
-                  
-                  <TabPane tab="Cả ngày" key="full_day">
-                    <Card title={`Cả ngày (${dailyStats.full_day.total} nhân viên)`} bordered={false}>
-                      {dailyStats.full_day.users.length > 0 ? (
-                        <Table 
-                          dataSource={dailyStats.full_day.users} 
-                          pagination={false}
-                          rowKey="id"
-                          columns={[
-                            {
-                              title: 'Nhân viên',
-                              dataIndex: 'name',
-                              key: 'name',
-                              render: (text) => <Text strong>{text}</Text>
-                            },
-                            {
-                              title: 'Vị trí',
-                              dataIndex: 'role',
-                              key: 'role',
-                              render: (role) => (
-                                <Tag color={role === 'kitchen' ? 'orange' : 'blue'}>
-                                  {role === 'kitchen' ? 'Bếp' : 'Phục vụ'}
-                                </Tag>
-                              )
-                            },
-                            {
-                              title: 'Thời gian',
-                              key: 'time',
-                              render: (_, record) => (
-                                <Text>{record.startTime || '—'} - {record.endTime || '—'}</Text>
-                              )
-                            },
-                            {
-                              title: 'Trạng thái',
-                              dataIndex: 'status',
-                              key: 'status',
-                              render: (status) => {
-                                const statuses = {
-                                  'scheduled': <Badge status="default" text="Đã lên lịch" />,
-                                  'confirmed': <Badge status="processing" text="Đã xác nhận" />,
-                                  'completed': <Badge status="success" text="Đã hoàn thành" />,
-                                  'cancelled': <Badge status="error" text="Đã hủy" />
-                                };
-                                return statuses[status] || status;
-                              }
-                            }
-                          ]} 
-                        />
-                      ) : (
-                        <Empty description="Không có nhân viên nào làm cả ngày" />
-                      )}
-                    </Card>
-                  </TabPane>
-                </Tabs>
+                <Tabs defaultActiveKey="morning"
+                  items={[
+                    {
+                      key: 'morning',
+                      label: 'Ca sáng',
+                      children: (
+                        <Card title={`Ca sáng (${dailyStats.morning.total} nhân viên)`} variant="outlined">
+                          {dailyStats.morning.users.length > 0 ? (
+                            <Table 
+                              dataSource={dailyStats.morning.users} 
+                              pagination={false}
+                              rowKey="id"
+                              columns={[
+                                {
+                                  title: 'Nhân viên',
+                                  dataIndex: 'name',
+                                  key: 'name',
+                                  render: (text, record) => (
+                                    <div>
+                                      <Text strong>{text}</Text>
+                                    </div>
+                                  )
+                                },
+                                {
+                                  title: 'Vị trí',
+                                  dataIndex: 'role',
+                                  key: 'role',
+                                  render: (role) => (
+                                    <Tag color={role === 'kitchen' ? 'orange' : 'blue'}>
+                                      {role === 'kitchen' ? 'Bếp' : 'Phục vụ'}
+                                    </Tag>
+                                  )
+                                },
+                                {
+                                  title: 'Thời gian',
+                                  key: 'time',
+                                  render: (_, record) => (
+                                    <Text>{record.startTime || '—'} - {record.endTime || '—'}</Text>
+                                  )
+                                },
+                                {
+                                  title: 'Trạng thái',
+                                  dataIndex: 'status',
+                                  key: 'status',
+                                  render: (status) => {
+                                    const statuses = {
+                                      'scheduled': <Badge status="default" text="Đã lên lịch" />,
+                                      'confirmed': <Badge status="processing" text="Đã xác nhận" />,
+                                      'cancelled': <Badge status="error" text="Đã hủy" />
+                                    };
+                                    return statuses[status] || status;
+                                  }
+                                }
+                              ]} 
+                            />
+                          ) : (
+                            <Empty description="Không có nhân viên nào làm ca sáng" />
+                          )}
+                        </Card>
+                      )
+                    },
+                    {
+                      key: 'afternoon',
+                      label: 'Ca chiều',
+                      children: (
+                        <Card title={`Ca chiều (${dailyStats.afternoon.total} nhân viên)`} variant="outlined">
+                          {dailyStats.afternoon.users.length > 0 ? (
+                            <Table 
+                              dataSource={dailyStats.afternoon.users} 
+                              pagination={false}
+                              rowKey="id"
+                              columns={[
+                                {
+                                  title: 'Nhân viên',
+                                  dataIndex: 'name',
+                                  key: 'name',
+                                  render: (text, record) => (
+                                    <div>
+                                      <Text strong>{text}</Text>
+                                    </div>
+                                  )
+                                },
+                                {
+                                  title: 'Vị trí',
+                                  dataIndex: 'role',
+                                  key: 'role',
+                                  render: (role) => (
+                                    <Tag color={role === 'kitchen' ? 'orange' : 'blue'}>
+                                      {role === 'kitchen' ? 'Bếp' : 'Phục vụ'}
+                                    </Tag>
+                                  )
+                                },
+                                {
+                                  title: 'Thời gian',
+                                  key: 'time',
+                                  render: (_, record) => (
+                                    <Text>{record.startTime || '—'} - {record.endTime || '—'}</Text>
+                                  )
+                                },
+                                {
+                                  title: 'Trạng thái',
+                                  dataIndex: 'status',
+                                  key: 'status',
+                                  render: (status) => {
+                                    const statuses = {
+                                      'scheduled': <Badge status="default" text="Đã lên lịch" />,
+                                      'confirmed': <Badge status="processing" text="Đã xác nhận" />,
+                                      'cancelled': <Badge status="error" text="Đã hủy" />
+                                    };
+                                    return statuses[status] || status;
+                                  }
+                                }
+                              ]} 
+                            />
+                          ) : (
+                            <Empty description="Không có nhân viên nào làm ca chiều" />
+                          )}
+                        </Card>
+                      )
+                    },
+                    {
+                      key: 'evening',
+                      label: 'Ca tối',
+                      children: (
+                        <Card title={`Ca tối (${dailyStats.evening.total} nhân viên)`} variant="outlined">
+                          {dailyStats.evening.users.length > 0 ? (
+                            <Table 
+                              dataSource={dailyStats.evening.users} 
+                              pagination={false}
+                              rowKey="id"
+                              columns={[
+                                {
+                                  title: 'Nhân viên',
+                                  dataIndex: 'name',
+                                  key: 'name',
+                                  render: (text, record) => (
+                                    <div>
+                                      <Text strong>{text}</Text>
+                                    </div>
+                                  )
+                                },
+                                {
+                                  title: 'Vị trí',
+                                  dataIndex: 'role',
+                                  key: 'role',
+                                  render: (role) => (
+                                    <Tag color={role === 'kitchen' ? 'orange' : 'blue'}>
+                                      {role === 'kitchen' ? 'Bếp' : 'Phục vụ'}
+                                    </Tag>
+                                  )
+                                },
+                                {
+                                  title: 'Thời gian',
+                                  key: 'time',
+                                  render: (_, record) => (
+                                    <Text>{record.startTime || '—'} - {record.endTime || '—'}</Text>
+                                  )
+                                },
+                                {
+                                  title: 'Trạng thái',
+                                  dataIndex: 'status',
+                                  key: 'status',
+                                  render: (status) => {
+                                    const statuses = {
+                                      'scheduled': <Badge status="default" text="Đã lên lịch" />,
+                                      'confirmed': <Badge status="processing" text="Đã xác nhận" />,
+                                      'cancelled': <Badge status="error" text="Đã hủy" />
+                                    };
+                                    return statuses[status] || status;
+                                  }
+                                }
+                              ]} 
+                            />
+                          ) : (
+                            <Empty description="Không có nhân viên nào làm ca tối" />
+                          )}
+                        </Card>
+                      )
+                    },
+                    {
+                      key: 'night',
+                      label: 'Ca đêm',
+                      children: (
+                        <Card title={`Ca đêm (${dailyStats.night.total} nhân viên)`} variant="outlined">
+                          {dailyStats.night.users.length > 0 ? (
+                            <Table 
+                              dataSource={dailyStats.night.users} 
+                              pagination={false}
+                              rowKey="id"
+                              columns={[
+                                {
+                                  title: 'Nhân viên',
+                                  dataIndex: 'name',
+                                  key: 'name',
+                                  render: (text, record) => (
+                                    <div>
+                                      <Text strong>{text}</Text>
+                                    </div>
+                                  )
+                                },
+                                {
+                                  title: 'Vị trí',
+                                  dataIndex: 'role',
+                                  key: 'role',
+                                  render: (role) => (
+                                    <Tag color={role === 'kitchen' ? 'orange' : 'blue'}>
+                                      {role === 'kitchen' ? 'Bếp' : 'Phục vụ'}
+                                    </Tag>
+                                  )
+                                },
+                                {
+                                  title: 'Thời gian',
+                                  key: 'time',
+                                  render: (_, record) => (
+                                    <Text>{record.startTime || '—'} - {record.endTime || '—'}</Text>
+                                  )
+                                },
+                                {
+                                  title: 'Trạng thái',
+                                  dataIndex: 'status',
+                                  key: 'status',
+                                  render: (status) => {
+                                    const statuses = {
+                                      'scheduled': <Badge status="default" text="Đã lên lịch" />,
+                                      'confirmed': <Badge status="processing" text="Đã xác nhận" />,
+                                      'cancelled': <Badge status="error" text="Đã hủy" />
+                                    };
+                                    return statuses[status] || status;
+                                  }
+                                }
+                              ]} 
+                            />
+                          ) : (
+                            <Empty description="Không có nhân viên nào làm ca đêm" />
+                          )}
+                        </Card>
+                      )
+                    }
+                  ]}
+                />
                 
                 {/* Thống kê tổng hợp */}
                 <Card title="Tổng hợp theo vị trí">

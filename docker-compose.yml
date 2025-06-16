@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  backend:
+    build: ./backend
+    container_name: quanan_backend
+    restart: always
+    environment:
+      DB_HOST: host.docker.internal
+      DB_USER: root
+      DB_PASS: 123456
+      DB_NAME: quanan_db
+      DB_PORT: 3307
+      NODE_ENV: production
+    ports:
+      - "3001:3001"
+      - "5000:5000"
+    command: npm start
+
+  frontend:
+    build: ./frontend
+    container_name: quanan_frontend
+    restart: always
+    environment:
+      - FRONTEND_URL=http://localhost:5173
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+
+volumes:
+  mysql_data:

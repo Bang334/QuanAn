@@ -113,12 +113,11 @@ const AdminLayout = ({ children }) => {
     { text: 'Quản lý kho', icon: <InventoryIcon />, path: '/admin/inventory' },
     { text: 'Báo cáo kho', icon: <ReportsIcon />, path: '/admin/reports' },
     { text: 'Đơn đặt hàng', icon: <ShoppingIcon />, path: '/admin/shopping' },
-    { text: 'Quản lý công thức', icon: <RecipeIcon />, path: '/admin/recipes' },
   ];
   
   const staffMenuItems = [
     { text: 'Quản lý nhân viên', icon: <PeopleIcon />, path: '/admin/users' },
-    { text: 'Quản lý lương', icon: <SalaryIcon />, path: '/admin/salaries' },
+    { text: 'Quản lý lương', icon: <SalaryIcon />, path: '/admin/salary' },
     { text: 'Quản lý chấm công', icon: <AttendanceIcon />, path: '/admin/attendance' },
     { text: 'Quyền nhân viên bếp', icon: <SecurityIcon />, path: '/admin/kitchen-permissions' },
   ];
@@ -376,25 +375,13 @@ const AdminLayout = ({ children }) => {
              location.pathname.includes('/admin/reviews') ? 'Quản lý đánh giá' :
              location.pathname.includes('/admin/payments') ? 'Quản lý thanh toán' :
              location.pathname.includes('/admin/promotions') ? 'Quản lý khuyến mãi' :
-             location.pathname.includes('/admin/salaries') ? 'Quản lý lương' :
+             location.pathname.includes('/admin/salary') ? 'Quản lý lương' :
              location.pathname.includes('/admin/attendance') ? 'Quản lý chấm công & Lịch làm việc' :
              location.pathname.includes('/admin/analytics') ? 'Phân tích doanh thu' :
              location.pathname.includes('/admin/kitchen-permissions') ? 'Quyền nhân viên bếp' :
              'Quản lý nhà hàng'}
           </Typography>
           <Box sx={{ display: 'flex', alignItems: 'center' }}>
-            <Tooltip title="Thông báo">
-              <IconButton color="inherit">
-                <Badge badgeContent={3} color="error">
-                  <NotificationsIcon />
-                </Badge>
-              </IconButton>
-            </Tooltip>
-            <Tooltip title="Cài đặt">
-              <IconButton color="inherit" sx={{ mx: 1 }}>
-                <SettingsIcon />
-              </IconButton>
-            </Tooltip>
             <Tooltip title={currentUser?.name || 'Admin'}>
               <IconButton
                 size="large"

@@ -114,11 +114,26 @@ const updatePaymentStatus = async (req, res) => {
     }
     
     // Kiểm tra trạng thái hợp lệ
-    const validStatuses = ['pending', 'processing', 'completed', 'failed', 'refunded'];
+    const validStatuses = ['completed', 'failed', 'refunded'];
     if (!validStatuses.includes(status)) {
       return res.status(400).json({
         success: false,
         message: 'Trạng thái thanh toán không hợp lệ'
+      });
+    }
+    
+    // Kiểm tra logic chuyển đổi trạng thái
+    if (payment.status === 'completed' && status === 'failed') {
+      return res.status(400).json({
+        success: false,
+        message: 'Không thể chuyển thanh toán từ Hoàn thành sang Thất bại'
+      });
+    }
+    
+    if (payment.status === 'refunded' && (status === 'completed' || status === 'failed')) {
+      return res.status(400).json({
+        success: false,
+        message: 'Không thể chuyển thanh toán từ Hoàn tiền sang trạng thái khác'
       });
     }
     
@@ -294,14 +309,21 @@ exports.getRevenueStats = async (req, res) => {
         [sequelize.fn('COUNT', sequelize.col('id')), 'numberOfPayments'],
         [sequelize.fn('AVG', sequelize.col('amount')), 'averagePayment'],
         [sequelize.literal(`SUM(CASE WHEN paymentMethod = 'cash' THEN amount ELSE 0 END)`), 'cashRevenue'],
-        [sequelize.literal(`SUM(CASE WHEN paymentMethod = 'card' THEN amount ELSE 0 END)`), 'cardRevenue'],
-        [sequelize.literal(`SUM(CASE WHEN paymentMethod IN ('momo', 'zalopay', 'vnpay') THEN amount ELSE 0 END)`), 'eWalletRevenue']
+        [sequelize.literal(`SUM(CASE WHEN paymentMethod = 'bank' THEN amount ELSE 0 END)`), 'bankRevenue']
       ],
       where: whereConditions,
       group: [groupBy],
       order: [[groupBy, 'DESC']]
     });
-    
+
+    // Debug: log kết quả revenueStats và tổng doanh thu
+    let totalRevenue = 0;
+    if (Array.isArray(revenueStats)) {
+      totalRevenue = revenueStats.reduce((sum, item) => sum + parseFloat(item.totalRevenue || 0), 0);
+    }
+    console.log('revenueStats:', revenueStats);
+    console.log('totalRevenue:', totalRevenue);
+
     return res.status(200).json(revenueStats);
   } catch (error) {
     console.error('Error getting revenue statistics:', error);

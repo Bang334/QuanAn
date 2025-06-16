@@ -66,6 +66,7 @@ const OrdersPage = () => {
   const [statusFilter, setStatusFilter] = useState('');
   const [tableFilter, setTableFilter] = useState('');
   const [tabValue, setTabValue] = useState(0);
+  const [timeFilter, setTimeFilter] = useState('24h'); // Mặc định là 24 giờ qua
   
   // For order details modal
   const [selectedOrder, setSelectedOrder] = useState(null);
@@ -86,15 +87,14 @@ const OrdersPage = () => {
       setLoading(true);
       setError(null);
       
-      // Get date from 24 hours ago in YYYY-MM-DD format
-      const now = new Date();
-      const twentyFourHoursAgo = new Date(now);
-      twentyFourHoursAgo.setHours(now.getHours() - 24);
+      // Thiết lập filter dựa trên timeFilter
+      const filters = {};
       
-      // Use hours_ago parameter instead of date
-      const filters = {
-        hours_ago: 24 // Filter orders from the last 24 hours
-      };
+      if (timeFilter === '24h') {
+        filters.hours_ago = 24; // Lọc đơn hàng trong 24 giờ qua
+      } else if (timeFilter === '7days') {
+        filters.days_ago = 7; // Lọc đơn hàng trong 7 ngày qua
+      }
       
       if (statusFilter) filters.status = statusFilter;
       if (tableFilter) filters.tableId = tableFilter;
@@ -118,7 +118,7 @@ const OrdersPage = () => {
     }, 30000);
     
     return () => clearInterval(interval);
-  }, [statusFilter, tableFilter]);
+  }, [statusFilter, tableFilter, timeFilter]);
   
   const handleTabChange = (event, newValue) => {
     setTabValue(newValue);
@@ -372,10 +372,14 @@ const OrdersPage = () => {
     });
   };
   
+  const handleTimeFilterChange = (e) => {
+    setTimeFilter(e.target.value);
+  };
+  
   return (
     <Box sx={{ p: 3 }}>
       <Typography variant="h4" gutterBottom>
-        Đơn hàng hôm nay
+        {timeFilter === '24h' ? 'Đơn hàng (24 giờ qua)' : 'Đơn hàng (7 ngày qua)'}
       </Typography>
       
       <Paper sx={{ mb: 3 }}>
@@ -453,6 +457,19 @@ const OrdersPage = () => {
                 endAdornment: <SearchIcon color="action" />
               }}
             />
+          </Grid>
+          <Grid item xs={12} sm={4} md={3}>
+            <FormControl fullWidth>
+              <InputLabel>Khoảng thời gian</InputLabel>
+              <Select
+                value={timeFilter}
+                onChange={handleTimeFilterChange}
+                label="Khoảng thời gian"
+              >
+                <MenuItem value="24h">24 giờ qua</MenuItem>
+                <MenuItem value="7days">7 ngày qua</MenuItem>
+              </Select>
+            </FormControl>
           </Grid>
           <Grid item xs={12} sm={4} md={3}>
             <Button
@@ -533,7 +550,6 @@ const OrdersPage = () => {
                     Chi tiết
                   </Button>
                   
-                  {/* Hiển thị nút xác nhận khi đơn hàng đang ở trạng thái pending */}
                   {order.status === 'pending' && (
                     <Button 
                       size="small" 
@@ -547,10 +563,10 @@ const OrdersPage = () => {
                   )}
                   
                   {/* Hiển thị nút thanh toán khi tất cả các món ăn đã được phục vụ và đơn hàng chưa hoàn thành */}
-                  {order.status !== 'completed' && order.OrderItems && 
+                  {order.status !== 'completed' && order.status === 'payment_requested' && order.OrderItems && 
                    order.OrderItems.every(item => item.status === 'served' || item.status === 'completed') && (
                     <Button 
-                      size="small" 
+                      size="small"  
                       variant="contained" 
                       color="success"
                       startIcon={<PaymentIcon />}
@@ -785,7 +801,7 @@ const OrdersPage = () => {
                 )}
                 
                 {/* Chỉ hiển thị nút thanh toán khi tất cả các món ăn đã được phục vụ và đơn hàng chưa hoàn thành */}
-                {selectedOrder.status !== 'completed' && selectedOrder.OrderItems && 
+                {selectedOrder.status !== 'completed' && selectedOrder.status === 'payment_requested' && selectedOrder.OrderItems && 
                  selectedOrder.OrderItems.every(item => item.status === 'served' || item.status === 'completed') && (
                   <Button 
                     variant="contained" 

@@ -20,18 +20,6 @@ export const CartProvider = ({ children }) => {
   
   const [orderHistory, setOrderHistory] = useState([]);
   
-  // State để lưu trữ món ăn đã thanh toán nhưng chưa đánh giá
-  const [completedItems, setCompletedItems] = useState(() => {
-    const savedItems = localStorage.getItem('completedItems');
-    return savedItems ? JSON.parse(savedItems) : [];
-  });
-  
-  // State để lưu trữ các đánh giá đã thực hiện
-  const [userReviews, setUserReviews] = useState(() => {
-    const savedReviews = localStorage.getItem('userReviews');
-    return savedReviews ? JSON.parse(savedReviews) : [];
-  });
-
   useEffect(() => {
     localStorage.setItem('cart', JSON.stringify(cartItems));
   }, [cartItems]);
@@ -41,14 +29,6 @@ export const CartProvider = ({ children }) => {
       localStorage.setItem('tableId', tableId);
     }
   }, [tableId]);
-  
-  useEffect(() => {
-    localStorage.setItem('completedItems', JSON.stringify(completedItems));
-  }, [completedItems]);
-  
-  useEffect(() => {
-    localStorage.setItem('userReviews', JSON.stringify(userReviews));
-  }, [userReviews]);
   
   const fetchOrderHistory = async () => {
     if (!tableId) return;
@@ -151,17 +131,6 @@ export const CartProvider = ({ children }) => {
       // Mock response
       const orderId = Math.floor(Math.random() * 1000).toString();
       
-      // Thêm các món đã đặt vào danh sách các món cần đánh giá
-      const itemsToReview = cartItems.map(item => ({
-        id: item.id,
-        name: item.name,
-        orderId,
-        orderDate: new Date().toISOString(),
-        reviewed: false
-      }));
-      
-      setCompletedItems(prev => [...prev, ...itemsToReview]);
-      
       // Sau khi đặt hàng thành công, xóa giỏ hàng
       clearCart();
       
@@ -172,38 +141,32 @@ export const CartProvider = ({ children }) => {
     }
   };
   
-  const submitReview = (foodId, rating, comment) => {
-    // Đánh dấu món ăn đã được đánh giá
-    setCompletedItems(prevItems => 
-      prevItems.map(item => 
-        item.id === foodId 
-          ? { ...item, reviewed: true }
-          : item
-      )
-    );
+  // Hàm mới: Đặt món trực tiếp không thông qua giỏ hàng
+  const orderDirectly = async (item, orderNote = '') => {
+    if (!tableId) return null;
     
-    // Lưu đánh giá
-    const newReview = {
-      foodId,
-      rating,
-      comment,
-      date: new Date().toISOString()
-    };
-    
-    setUserReviews(prev => [...prev, newReview]);
-    
-    // Trong thực tế, bạn sẽ gửi đánh giá lên server
-    // axios.post(`${API_URL}/api/reviews`, newReview);
-    
-    return newReview;
-  };
-  
-  const getUnreviewedItems = () => {
-    return completedItems.filter(item => !item.reviewed);
-  };
-  
-  const getUserReviewForFood = (foodId) => {
-    return userReviews.find(review => review.foodId === foodId);
+    try {
+      // Gọi API để đặt món trực tiếp
+      const response = await axios.post(`${API_URL}/api/orders/direct`, {
+        tableId,
+        item: {
+          id: item.id,
+          quantity: item.quantity
+        },
+        note: orderNote
+      });
+      
+      // Lấy ID đơn hàng từ response
+      const orderId = response.data.id;
+      
+      // Sau khi đặt hàng thành công, xóa giỏ hàng
+      clearCart();
+      
+      return orderId;
+    } catch (err) {
+      console.error('Error ordering directly:', err);
+      throw err;
+    }
   };
   
   const value = {
@@ -217,13 +180,9 @@ export const CartProvider = ({ children }) => {
     getItemCount,
     getTotalPrice,
     submitOrder,
+    orderDirectly,
     orderHistory,
-    fetchOrderHistory,
-    completedItems,
-    submitReview,
-    getUnreviewedItems,
-    userReviews,
-    getUserReviewForFood
+    fetchOrderHistory
   };
 
   return (

@@ -121,7 +121,6 @@ const PaymentManagementPage = () => {
       PhuongThuc: payment.paymentMethod,
       NgayThanhToan: new Date(payment.paymentDate).toLocaleString(),
       TrangThai: payment.status,
-      MaGiaoDich: payment.transactionId || 'N/A',
       TienHoanLai: payment.refundAmount || 0,
       GhiChu: payment.notes || 'N/A'
     }));
@@ -147,14 +146,8 @@ const PaymentManagementPage = () => {
     switch (method) {
       case 'cash':
         return <Badge bg="success">Tiền mặt</Badge>;
-      case 'card':
-        return <Badge bg="primary">Thẻ</Badge>;
-      case 'momo':
-        return <Badge bg="danger">MoMo</Badge>;
-      case 'zalopay':
-        return <Badge bg="info">ZaloPay</Badge>;
-      case 'vnpay':
-        return <Badge bg="warning">VNPay</Badge>;
+      case 'bank':
+        return <Badge bg="primary">Chuyển khoản</Badge>;
       default:
         return <Badge bg="secondary">{method}</Badge>;
     }
@@ -186,6 +179,20 @@ const PaymentManagementPage = () => {
         />
       </Pagination>
     );
+  };
+
+  // Xác định danh sách trạng thái có thể chuyển đổi dựa trên trạng thái hiện tại
+  const getAvailableStatuses = (currentStatus) => {
+    switch (currentStatus) {
+      case 'completed':
+        return ['completed', 'refunded']; // Hoàn thành chỉ có thể chuyển thành hoàn tiền
+      case 'failed':
+        return ['failed', 'completed']; // Thất bại có thể chuyển thành hoàn thành
+      case 'refunded':
+        return ['refunded']; // Hoàn tiền không thể chuyển thành trạng thái khác
+      default:
+        return ['completed', 'failed', 'refunded'];
+    }
   };
 
   return (
@@ -245,10 +252,7 @@ const PaymentManagementPage = () => {
                       >
                         <option value="">Tất cả phương thức</option>
                         <option value="cash">Tiền mặt</option>
-                        <option value="card">Thẻ</option>
-                        <option value="momo">MoMo</option>
-                        <option value="zalopay">ZaloPay</option>
-                        <option value="vnpay">VNPay</option>
+                        <option value="bank">Chuyển khoản</option>
                       </Form.Select>
                     </Form.Group>
                   </Col>
@@ -315,7 +319,6 @@ const PaymentManagementPage = () => {
                         <th>Phương thức</th>
                         <th>Ngày thanh toán</th>
                         <th>Trạng thái</th>
-                        <th>Mã giao dịch</th>
                         <th>Thao tác</th>
                       </tr>
                     </thead>
@@ -328,7 +331,6 @@ const PaymentManagementPage = () => {
                           <td>{getPaymentMethodBadge(payment.paymentMethod)}</td>
                           <td>{formatDate(payment.paymentDate)}</td>
                           <td>{getStatusBadge(payment.status)}</td>
-                          <td>{payment.transactionId || 'N/A'}</td>
                           <td>
                             <Button 
                               variant="outline-primary" 
@@ -352,7 +354,7 @@ const PaymentManagementPage = () => {
       </Row>
 
       {/* Modal Chỉnh Sửa Thanh Toán */}
-      <Modal show={showModal} onHide={() => setShowModal(false)}>
+      <Modal show={showModal} onHide={() => setShowModal(false)} style={{zIndex: 100000}}>
         <Modal.Header closeButton>
           <Modal.Title>Chỉnh Sửa Thanh Toán</Modal.Title>
         </Modal.Header>
@@ -365,9 +367,13 @@ const PaymentManagementPage = () => {
                 value={formData.status}
                 onChange={handleFormChange}
               >
-                <option value="completed">Hoàn thành</option>
-                <option value="refunded">Đã hoàn tiền</option>
-                <option value="failed">Thất bại</option>
+                {selectedPayment && getAvailableStatuses(selectedPayment.status).map(status => (
+                  <option key={status} value={status}>
+                    {status === 'completed' ? 'Hoàn thành' : 
+                     status === 'refunded' ? 'Đã hoàn tiền' : 
+                     status === 'failed' ? 'Thất bại' : status}
+                  </option>
+                ))}
               </Form.Select>
             </Form.Group>
             

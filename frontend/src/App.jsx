@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
@@ -29,16 +29,15 @@ import AdminReviewPage from './pages/admin/ReviewManagementPage';
 import AdminPaymentPage from './pages/admin/PaymentManagementPage';
 import AdminPromotionPage from './pages/admin/PromotionManagementPage';
 import AdminRevenueAnalyticsPage from './pages/admin/RevenueAnalyticsPage';
-import AdminSalaryPage from './pages/AdminSalaryPage';
 import AdminInventoryPage from './pages/admin/InventoryManagementPage';
 import AdminReportPage from './pages/admin/InventoryReportsPage';
-import RecipeManagementPage from './pages/admin/RecipeManagementPage';
 import AdminShoppingPage from './pages/admin/PurchaseOrdersPage';
 import KitchenPermissionManagementPage from './pages/admin/KitchenPermissionManagementPage';
 import MenuManagementPage from './pages/admin/MenuManagementPage';
 import OrderDetailPage from './pages/admin/OrderDetailPage';
 import IngredientPriceHistoryPage from './pages/admin/IngredientPriceHistoryPage';
 import AdminAttendancePage from './pages/admin/AdminAttendancePage';
+import SalaryManagementPage from './pages/admin/SalaryManagementPage';
 
 // Kitchen Pages
 import KitchenDashboardPage from './pages/kitchen/DashboardPage';
@@ -246,16 +245,16 @@ function App() {
                 <Route path="payments" element={<AdminPaymentPage />} />
                 <Route path="promotions" element={<AdminPromotionPage />} />
                 <Route path="analytics" element={<AdminRevenueAnalyticsPage />} />
-                <Route path="salaries" element={<AdminSalaryPage />} />
                 <Route path="attendance" element={<AdminAttendancePage />} />
                 <Route path="inventory" element={<AdminInventoryPage />} />
                 <Route path="inventory/:id/history" element={<IngredientHistoryPage />} />
                 <Route path="inventory/ingredient/:id/price-history" element={<IngredientPriceHistoryPage />} />
                 <Route path="inventory/ingredient/:id/history" element={<IngredientHistoryPage />} />
                 <Route path="reports" element={<AdminReportPage />} />
-                <Route path="recipes" element={<RecipeManagementPage />} />
                 <Route path="shopping" element={<AdminShoppingPage />} />
                 <Route path="kitchen-permissions" element={<KitchenPermissionManagementPage />} />
+                <Route path="salary" element={<SalaryManagementPage />} />
+                <Route path="salaries" element={<Navigate to="/admin/salary" replace />} />
               </Route>
 
               {/* Kitchen Routes */}

@@ -81,6 +81,7 @@ const PurchaseOrderDetailPage = () => {
       }
       
       setOrder(orderData);
+      console.log('PurchaseOrderDetailPage order:', orderData);
     } catch (err) {
       console.error('Error fetching order details:', err);
       setError('Không thể tải thông tin đơn hàng. Vui lòng thử lại sau.');
@@ -140,8 +141,6 @@ const PurchaseOrderDetailPage = () => {
         return <Chip icon={<CheckCircleIcon />} label="Đã duyệt" color="info" />;
       case 'rejected':
         return <Chip icon={<CancelIcon />} label="Đã từ chối" color="error" />;
-      case 'shipping':
-        return <Chip icon={<ShippingIcon />} label="Đang giao hàng" color="primary" />;
       case 'delivered':
         return <Chip icon={<ShippingIcon />} label="Đã giao" color="info" />;
       case 'completed':
@@ -268,7 +267,7 @@ const PurchaseOrderDetailPage = () => {
                     Nhà cung cấp
                   </Typography>
                   <Typography variant="body1">
-                    {order.supplier ? order.supplier.name : 'Không có thông tin'}
+                    {order.Supplier ? order.Supplier.name : 'Không có thông tin'}
                   </Typography>
                 </Grid>
                 <Grid sx={{ gridColumn: 'span 12' }}>
@@ -320,15 +319,9 @@ const PurchaseOrderDetailPage = () => {
                 </Alert>
               )}
               
-              {order.status === 'shipping' && (
-                <Alert severity="info" sx={{ mb: 2 }}>
-                  Đơn hàng đang được giao. Bạn có thể cập nhật trạng thái khi nhà cung cấp đã giao hàng.
-                </Alert>
-              )}
-              
               {order.status === 'delivered' && (
                 <Alert severity="success" sx={{ mb: 2 }}>
-                  Đơn hàng đã được giao. Hàng đã được tự động cập nhật vào kho.
+                  Đơn hàng đã giao. Hàng đã được thêm vào kho.
                 </Alert>
               )}
               
@@ -386,20 +379,6 @@ const PurchaseOrderDetailPage = () => {
                     <Grid>
                       <Button
                         variant="outlined"
-                        color="primary"
-                        startIcon={<ShippingIcon />}
-                        onClick={() => handleOpenStatusDialog('shipping')}
-                        sx={{ mr: 1 }}
-                      >
-                        Đang giao hàng
-                      </Button>
-                    </Grid>
-                  )}
-                  
-                  {order.status === 'shipping' && (
-                    <Grid>
-                      <Button
-                        variant="outlined"
                         color="info"
                         startIcon={<ShippingIcon />}
                         onClick={() => handleOpenStatusDialog('delivered')}
@@ -410,9 +389,7 @@ const PurchaseOrderDetailPage = () => {
                     </Grid>
                   )}
                   
-
-                  
-                  {(order.status === 'pending' || order.status === 'approved' || order.status === 'shipping') && (
+                  {(order.status === 'pending' || order.status === 'approved') && (
                     <Grid>
                       <Button
                         variant="outlined"
@@ -548,7 +525,6 @@ const PurchaseOrderDetailPage = () => {
                           <MenuItem value="pending">Chờ xử lý</MenuItem>
                           <MenuItem value="approved">Đã duyệt</MenuItem>
                           <MenuItem value="rejected">Từ chối</MenuItem>
-                          <MenuItem value="shipping">Đang giao hàng</MenuItem>
                           <MenuItem value="delivered">Đã giao</MenuItem>
                           <MenuItem value="completed">Hoàn thành</MenuItem>
                           <MenuItem value="cancelled">Đã hủy</MenuItem>

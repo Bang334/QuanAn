@@ -15,6 +15,17 @@ export const getReviewsByMenuItem = async (menuItemId) => {
   }
 };
 
+// Lấy tổng số đánh giá trong database
+export const getTotalReviewCount = async () => {
+  try {
+    const response = await axios.get(`${API}/count`);
+    return response.data.count || 0;
+  } catch (error) {
+    console.error('Error fetching review count:', error);
+    return 0;
+  }
+};
+
 // Lấy thông tin tổng hợp đánh giá
 export const getReviewSummary = async (menuItemId) => {
   try {

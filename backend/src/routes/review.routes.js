@@ -5,6 +5,9 @@ const reviewController = require('../controllers/review.controller');
 // Lấy tất cả đánh giá
 router.get('/', reviewController.getAllReviews);
 
+// Lấy tổng số đánh giá
+router.get('/count', reviewController.getTotalReviewCount);
+
 // Get reviews for a specific menu item
 router.get('/menu-item/:menuItemId', reviewController.getMenuItemReviews);
 
@@ -29,4 +32,4 @@ router.delete('/:id', reviewController.deleteReview);
 // Đồng bộ lại số lượng đánh giá và điểm trung bình
 router.post('/sync-ratings', reviewController.syncMenuItemRatings);
 
-module.exports = router; 
+module.exports = router;

@@ -50,18 +50,6 @@ MenuItem.init(
       type: DataTypes.STRING,
       allowNull: true,
     },
-    isSpicy: {
-      type: DataTypes.BOOLEAN,
-      defaultValue: false,
-    },
-    isVegetarian: {
-      type: DataTypes.BOOLEAN,
-      defaultValue: false,
-    },
-    allergens: {
-      type: DataTypes.STRING,
-      allowNull: true,
-    },
     avgRating: {
       type: DataTypes.FLOAT,
       defaultValue: 0,

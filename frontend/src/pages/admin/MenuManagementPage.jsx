@@ -169,18 +169,20 @@ const MenuManagementPage = () => {
       const recipeData = await inventoryService.getRecipeByMenuItem(menuItemId);
       if (recipeData && recipeData.RecipeIngredients) {
         // Chuyển đổi dữ liệu công thức thành định dạng selectedIngredients
-        const ingredients = recipeData.RecipeIngredients.map(item => {
+        const ingredientsFromRecipe = recipeData.RecipeIngredients.map(item => {
+          // Luôn lấy giá và ảnh mới nhất từ kho (ingredients state)
+          const latest = ingredients.find(ing => ing.id === item.ingredientId);
           return {
             ingredientId: item.ingredientId,
-            ingredientName: item.Ingredient ? item.Ingredient.name : '',
+            ingredientName: latest ? latest.name : (item.Ingredient ? item.Ingredient.name : ''),
             quantity: item.quantity,
-            unit: item.Ingredient ? item.Ingredient.unit : 'g',
-            price: item.Ingredient ? item.Ingredient.costPerUnit : 0,
-            image: item.Ingredient ? item.Ingredient.image : null
+            unit: latest ? latest.unit : (item.Ingredient ? item.Ingredient.unit : 'g'),
+            price: latest ? latest.price : (item.Ingredient ? item.Ingredient.costPerUnit : 0),
+            image: latest ? latest.image : (item.Ingredient ? item.Ingredient.image : null)
           };
         });
-        setSelectedIngredients(ingredients);
-        calculateSuggestedPrice(ingredients);
+        setSelectedIngredients(ingredientsFromRecipe);
+        calculateSuggestedPrice(ingredientsFromRecipe);
       } else {
         setSelectedIngredients([]);
       }
@@ -432,32 +434,6 @@ const MenuManagementPage = () => {
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price);
   };
 
-  // Check availability of all menu items
-  const handleCheckAvailability = async () => {
-    try {
-      setCheckingAvailability(true);
-      const result = await inventoryService.checkAllMenuItemsAvailability();
-      
-      // Update the menu items with new availability status
-      await fetchMenuItems();
-      
-      // Show success message
-      setSnackbar({
-        open: true,
-        message: `Kiểm tra hoàn tất: ${result.results.filter(r => r.statusChanged).length} món đã được cập nhật trạng thái`,
-        severity: 'success',
-      });
-    } catch (error) {
-      console.error('Error checking menu item availability:', error);
-      setSnackbar({
-        open: true,
-        message: 'Lỗi khi kiểm tra trạng thái món ăn',
-        severity: 'error',
-      });
-    } finally {
-      setCheckingAvailability(false);
-    }
-  };
 
   if (loading) {
     return (
@@ -474,16 +450,6 @@ const MenuManagementPage = () => {
           Quản lý thực đơn
         </Typography>
         <Box>
-          <Button
-            variant="outlined"
-            color="primary"
-            startIcon={<RefreshIcon />}
-            onClick={handleCheckAvailability}
-            disabled={checkingAvailability}
-            sx={{ mr: 2 }}
-          >
-            {checkingAvailability ? 'Đang kiểm tra...' : 'Kiểm tra trạng thái'}
-          </Button>
           <Button 
             variant="contained" 
             color="primary"
@@ -561,7 +527,6 @@ const MenuManagementPage = () => {
         </DialogTitle>
         <DialogContent sx={{ py: 3 }}>
           <Grid container spacing={3}>
-            {/* Thông tin cơ bản */}
             <Grid item xs={12}>
               <Typography variant="subtitle1" fontWeight="bold" sx={{ mb: 2, color: 'primary.main' }}>
                 Thông tin cơ bản
@@ -661,7 +626,7 @@ const MenuManagementPage = () => {
                               {/* Always show image with placeholder fallback */}
                               <Box
                                 component="img"
-                                src={ingredient.image || 'https://via.placeholder.com/40x40?text=NL'}
+                                src={ingredient.image}
                                 alt={ingredient.name}
                                 sx={{ width: 32, height: 32, mr: 1, objectFit: 'cover', borderRadius: 1 }}
                               />
@@ -718,12 +683,6 @@ const MenuManagementPage = () => {
                             }
                             sx={{ py: 1 }}
                           >
-                            <Box
-                              component="img"
-                              src={ingredient.image || 'https://via.placeholder.com/40x40?text=NL'}
-                              alt={ingredient.ingredientName}
-                              sx={{ width: 32, height: 32, mr: 1, objectFit: 'cover', borderRadius: 1 }}
-                            />
                             <ListItemText
                               primary={
                                 <Typography variant="body2" fontWeight="medium">

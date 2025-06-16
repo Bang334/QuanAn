@@ -19,6 +19,7 @@ const orderService = {
       if (filters.tableId) queryParams.append('tableId', filters.tableId);
       if (filters.date) queryParams.append('date', filters.date);
       if (filters.hours_ago) queryParams.append('hours_ago', filters.hours_ago);
+      if (filters.days_ago) queryParams.append('days_ago', filters.days_ago);
       if (filters.current_customer) queryParams.append('current_customer', filters.current_customer);
       
       if (queryParams.toString()) {

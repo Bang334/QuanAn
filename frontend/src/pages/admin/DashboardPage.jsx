@@ -68,7 +68,7 @@ const DashboardPage = () => {
         });
         
         // Lấy dữ liệu lương
-        const salaryResponse = await axios.get(`${API_URL}/api/salaries/admin`, {
+        const salaryResponse = await axios.get(`${API_URL}/api/salary/admin`, {
           headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
         });
         
@@ -76,11 +76,11 @@ const DashboardPage = () => {
         const salaries = salaryResponse.data;
         const totalPaid = salaries
           .filter(salary => salary.status === 'paid')
-          .reduce((sum, salary) => sum + parseFloat(salary.baseSalary) + parseFloat(salary.bonus) - parseFloat(salary.deduction), 0);
+          .reduce((sum, salary) => sum + parseFloat(salary.totalHourlyPay) + parseFloat(salary.bonus) - parseFloat(salary.deduction), 0);
         
         const totalPending = salaries
           .filter(salary => salary.status === 'pending')
-          .reduce((sum, salary) => sum + parseFloat(salary.baseSalary) + parseFloat(salary.bonus) - parseFloat(salary.deduction), 0);
+          .reduce((sum, salary) => sum + parseFloat(salary.totalHourlyPay) + parseFloat(salary.bonus) - parseFloat(salary.deduction), 0);
         
         // Tính số lượng nhân viên duy nhất
         const uniqueEmployees = [...new Set(salaries.map(salary => salary.userId))];
@@ -168,7 +168,8 @@ const DashboardPage = () => {
   }, []);
 
   const formatPrice = (price) => {
-    return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price);
+    const value = typeof price === 'number' && !isNaN(price) ? price : 0;
+    return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value);
   };
 
   const getStatusColor = (status) => {
@@ -212,7 +213,6 @@ const DashboardPage = () => {
       <Typography variant="h4" gutterBottom>
         Bảng điều khiển
       </Typography>
-      
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
       
       <Grid container spacing={3} sx={{ mb: 3 }}>

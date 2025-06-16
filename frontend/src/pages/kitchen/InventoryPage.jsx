@@ -344,7 +344,6 @@ const InventoryPage = () => {
     switch (status) {
       case 'pending': return 'warning';
       case 'approved': return 'info';
-      case 'shipping': return 'primary';
       case 'delivered': return 'info';
       case 'completed': return 'success';
       case 'cancelled': return 'error';
@@ -357,7 +356,6 @@ const InventoryPage = () => {
     switch (status) {
       case 'pending': return 'Chờ duyệt';
       case 'approved': return 'Đã duyệt';
-      case 'shipping': return 'Đang giao hàng';
       case 'delivered': return 'Đã giao';
       case 'completed': return 'Đã hoàn thành';
       case 'cancelled': return 'Đã hủy';
@@ -383,8 +381,6 @@ const InventoryPage = () => {
         <TableBody>
           {filteredIngredients.length > 0 ? (
             filteredIngredients.map((ingredient) => {
-              console.log("Hiển thị nguyên liệu:", ingredient);
-              
               return (
                 <TableRow key={ingredient.id}>
                   <TableCell>

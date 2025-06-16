@@ -238,6 +238,7 @@ const OrderManagementPage = () => {
       case 'preparing': return 'Đang chuẩn bị';
       case 'ready': return 'Sẵn sàng phục vụ';
       case 'served': return 'Đã phục vụ';
+      case 'payment_requested': return 'Yêu cầu thanh toán';
       case 'completed': return 'Hoàn thành';
       case 'cancelled': return 'Đã hủy';
       default: return status;
@@ -250,6 +251,7 @@ const OrderManagementPage = () => {
       case 'preparing': return 'warning';
       case 'ready': return 'info';
       case 'served': return 'info';
+      case 'payment_requested': return 'secondary';
       case 'completed': return 'success';
       case 'cancelled': return 'error';
       default: return 'default';
@@ -308,6 +310,7 @@ const OrderManagementPage = () => {
                 <MenuItem value="preparing">Đang chuẩn bị</MenuItem>
                 <MenuItem value="ready">Sẵn sàng phục vụ</MenuItem>
                 <MenuItem value="served">Đã phục vụ</MenuItem>
+                <MenuItem value="payment_requested">Yêu cầu thanh toán</MenuItem>
                 <MenuItem value="completed">Hoàn thành</MenuItem>
                 <MenuItem value="cancelled">Đã hủy</MenuItem>
               </Select>
@@ -370,8 +373,10 @@ const OrderManagementPage = () => {
                   </TableCell>
                   <TableCell>
                     <Chip 
-                      label={order.status === 'completed' ? 'Đã thanh toán' : 'Chưa thanh toán'} 
-                      color={order.status === 'completed' ? 'success' : 'default'} 
+                      label={order.status === 'completed' ? 'Đã thanh toán' : 
+                             order.status === 'payment_requested' ? 'Chờ thanh toán' : 'Chưa thanh toán'} 
+                      color={order.status === 'completed' ? 'success' : 
+                             order.status === 'payment_requested' ? 'secondary' : 'default'} 
                       size="small" 
                     />
                   </TableCell>
@@ -416,9 +421,10 @@ const OrderManagementPage = () => {
                     <strong>Trạng thái:</strong> {getStatusLabel(selectedOrder.status)}
                   </Typography>
                   <Typography variant="body2">
-                    <strong>Thanh toán:</strong> {order.status === 'completed' ? 
+                    <strong>Thanh toán:</strong> {selectedOrder.status === 'completed' ? 
                       `Đã thanh toán (${getPaymentMethodLabel(selectedOrder.paymentMethod)})` : 
-                      'Chưa thanh toán'}
+                      selectedOrder.status === 'payment_requested' ? 
+                      'Đang chờ xác nhận thanh toán' : 'Chưa thanh toán'}
                   </Typography>
                   {selectedOrder.notes && (
                     <Typography variant="body2">
@@ -449,12 +455,13 @@ const OrderManagementPage = () => {
                         <MenuItem value="preparing">Đang chuẩn bị</MenuItem>
                         <MenuItem value="ready">Sẵn sàng phục vụ</MenuItem>
                         <MenuItem value="served">Đã phục vụ</MenuItem>
+                        <MenuItem value="payment_requested">Yêu cầu thanh toán</MenuItem>
                         <MenuItem value="completed">Hoàn thành</MenuItem>
                         <MenuItem value="cancelled">Đã hủy</MenuItem>
                       </Select>
                     </FormControl>
                     
-                    {selectedOrder.status !== 'completed' && selectedOrder.status === 'served' && (
+                    {(selectedOrder.status === 'served' || selectedOrder.status === 'payment_requested') && selectedOrder.status !== 'completed' && (
                       <FormControl fullWidth>
                         <InputLabel>Phương thức thanh toán</InputLabel>
                         <Select
@@ -468,9 +475,9 @@ const OrderManagementPage = () => {
                       </FormControl>
                     )}
                     
-                    {selectedOrder.status !== 'completed' && selectedOrder.status !== 'served' && (
+                    {selectedOrder.status !== 'completed' && selectedOrder.status !== 'served' && selectedOrder.status !== 'payment_requested' && (
                       <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
-                        * Phương thức thanh toán sẽ được hiển thị khi đơn hàng đã được phục vụ
+                        * Phương thức thanh toán sẽ được hiển thị khi đơn hàng đã được phục vụ hoặc có yêu cầu thanh toán
                       </Typography>
                     )}
                   </Box>

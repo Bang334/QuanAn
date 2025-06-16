@@ -56,8 +56,8 @@ import axios from 'axios';
 import { format } from 'date-fns';
 import { vi } from 'date-fns/locale';
 import { API_URL } from '../../config';
-import { getAllMenuItems } from '../../services/menuService';
-import { getReviewsByMenuItem, getReviewSummary, deleteReview } from '../../services/reviewService';
+import { getAllMenuItems, syncMenuItemRatings } from '../../services/menuService';
+import { getReviewsByMenuItem, getReviewSummary, deleteReview, getTotalReviewCount } from '../../services/reviewService';
 
 const API_ENDPOINT = `${API_URL}/api`;
 
@@ -75,6 +75,7 @@ const ReviewManagementPage = () => {
   const [deleteReviewDialog, setDeleteReviewDialog] = useState(false);
   const [currentReview, setCurrentReview] = useState(null);
   const [syncingRatings, setSyncingRatings] = useState(false);
+  const [totalReviewCount, setTotalReviewCount] = useState(0);
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: '',
@@ -83,11 +84,21 @@ const ReviewManagementPage = () => {
   
   // Fetch menu items with their average ratings
   useEffect(() => {
-    const fetchMenuItems = async () => {
+    const fetchData = async () => {
       try {
         setLoading(true);
+        
+        // Đồng bộ đánh giá trước khi lấy dữ liệu
+        await syncMenuItemRatings();
+        
+        // Lấy danh sách món ăn
         const data = await getAllMenuItems();
         setMenuItems(data);
+        
+        // Lấy tổng số đánh giá
+        const count = await getTotalReviewCount();
+        setTotalReviewCount(count);
+        
         setError(null);
       } catch (err) {
         setError(err.response?.data?.message || 'Có lỗi xảy ra khi tải dữ liệu');
@@ -97,7 +108,7 @@ const ReviewManagementPage = () => {
       }
     };
     
-    fetchMenuItems();
+    fetchData();
   }, []);
   
   // Đồng bộ lại số lượng đánh giá và điểm trung bình
@@ -289,7 +300,7 @@ const ReviewManagementPage = () => {
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Typography variant="h4" component="h1" gutterBottom>
-          Quản lý đánh giá
+          Quản lý đánh giá ({totalReviewCount} đánh giá)
         </Typography>
         <Box>
           <Button 

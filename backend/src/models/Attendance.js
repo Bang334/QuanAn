@@ -18,6 +18,15 @@ Attendance.init(
         key: 'id'
       }
     },
+    scheduleId: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      references: {
+        model: 'schedules',
+        key: 'id'
+      },
+      comment: 'ID của lịch làm việc tương ứng'
+    },
     date: {
       type: DataTypes.DATEONLY,
       allowNull: false,
@@ -25,17 +34,20 @@ Attendance.init(
     timeIn: {
       type: DataTypes.TIME,
       allowNull: true,
+      comment: 'Thời gian check-in thực tế'
     },
     timeOut: {
       type: DataTypes.TIME,
       allowNull: true,
+      comment: 'Thời gian check-out thực tế'
     },
     hoursWorked: {
       type: DataTypes.DECIMAL(4, 2),
       allowNull: true,
+      comment: 'Số giờ làm việc được tính bằng min(thời gian checkout, thời gian ra của ca) - max(thời gian check in, thời gian vào theo ca)'
     },
     status: {
-      type: DataTypes.ENUM('present', 'absent', 'late', 'leave'),
+      type: DataTypes.ENUM('present', 'absent', 'late'),
       allowNull: false,
       defaultValue: 'present',
     },
@@ -55,21 +67,9 @@ Attendance.init(
       }
     ],
     hooks: {
-      beforeSave: (attendance) => {
-        // Tính toán số giờ làm việc nếu có cả giờ vào và giờ ra
-        if (attendance.timeIn && attendance.timeOut) {
-          const timeIn = new Date(`1970-01-01T${attendance.timeIn}`);
-          const timeOut = new Date(`1970-01-01T${attendance.timeOut}`);
-          
-          // Nếu timeOut nhỏ hơn timeIn, giả định là qua ngày hôm sau
-          let diff = timeOut - timeIn;
-          if (diff < 0) {
-            diff += 24 * 60 * 60 * 1000; // Cộng thêm 1 ngày
-          }
-          
-          // Chuyển đổi milliseconds thành giờ và làm tròn đến 2 chữ số thập phân
-          attendance.hoursWorked = Math.round((diff / (1000 * 60 * 60)) * 100) / 100;
-        }
+      beforeSave: async (attendance) => {
+        // Giờ làm việc sẽ được tính toán trong controller dựa trên lịch làm việc
+        // Không cần tính toán ở đây nữa
       }
     }
   }

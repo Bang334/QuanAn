@@ -4,6 +4,7 @@ const { Order, OrderItem, MenuItem, Table, User, Payment } = require('../models'
 const { authenticateToken, isAdmin, isKitchen, isWaiter } = require('../middlewares/auth');
 const { Op } = require('sequelize');
 const sequelize = require('../config/database');
+const orderController = require('../controllers/order.controller');
 
 // Helper function to update order status based on item statuses
 const updateOrderStatusBasedOnItems = async (orderId) => {
@@ -125,7 +126,7 @@ router.get('/stats', authenticateToken, isAdmin, async (req, res) => {
 // Get all orders - Staff only
 router.get('/', authenticateToken, async (req, res) => {
   try {
-    const { status, date, tableId, limit, hours_ago, current_customer } = req.query;
+    const { status, date, tableId, limit, hours_ago, days_ago, current_customer } = req.query;
     
     const whereClause = {};
     
@@ -151,6 +152,16 @@ router.get('/', authenticateToken, async (req, res) => {
       const now = new Date();
       const pastTime = new Date(now);
       pastTime.setHours(now.getHours() - hoursAgo);
+      
+      whereClause.createdAt = {
+        [Op.gte]: pastTime
+      };
+    } else if (days_ago) {
+      // Filter by days ago if provided
+      const daysAgo = parseInt(days_ago);
+      const now = new Date();
+      const pastTime = new Date(now);
+      pastTime.setDate(now.getDate() - daysAgo);
       
       whereClause.createdAt = {
         [Op.gte]: pastTime
@@ -200,19 +211,43 @@ router.get('/', authenticateToken, async (req, res) => {
 // Get kitchen view (all pending and preparing items)
 router.get('/kitchen/view', authenticateToken, isKitchen, async (req, res) => {
   try {
-    // Mặc định sẽ lấy dữ liệu trong 24 giờ qua
-    // Trang frontend sẽ tự lọc theo ngày hoặc tuần nếu cần
-    const now = new Date();
-    const oneDayAgo = new Date(now);
-    oneDayAgo.setDate(now.getDate() - 7); // Lấy dữ liệu 7 ngày để frontend có thể lọc
+    const { hours_ago, days_ago } = req.query;
+    const whereClause = {};
+    
+    if (hours_ago) {
+      // Filter by hours ago
+      const hoursAgo = parseInt(hours_ago);
+      const now = new Date();
+      const pastTime = new Date(now);
+      pastTime.setHours(now.getHours() - hoursAgo);
+      
+      whereClause.createdAt = {
+        [Op.gte]: pastTime
+      };
+    } else if (days_ago) {
+      // Filter by days ago
+      const daysAgo = parseInt(days_ago);
+      const now = new Date();
+      const pastTime = new Date(now);
+      pastTime.setDate(now.getDate() - daysAgo);
+      
+      whereClause.createdAt = {
+        [Op.gte]: pastTime
+      };
+    } else {
+      // Mặc định lấy dữ liệu trong 24 giờ qua
+      const now = new Date();
+      const oneDayAgo = new Date(now);
+      oneDayAgo.setHours(now.getHours() - 24);
+      
+      whereClause.createdAt = {
+        [Op.gte]: oneDayAgo
+      };
+    }
     
     // Lấy tất cả đơn hàng trong khoảng thời gian
     const orders = await Order.findAll({
-      where: {
-        createdAt: {
-          [Op.gte]: oneDayAgo
-        }
-      },
+      where: whereClause,
       include: [
         { 
           model: OrderItem,
@@ -441,6 +476,81 @@ router.post('/', async (req, res) => {
   }
 });
 
+// Create a direct order with a single item - Public (from customer)
+router.post('/direct', async (req, res) => {
+  try {
+    const { tableId, item, note } = req.body;
+    
+    if (!tableId || !item || !item.id) {
+      return res.status(400).json({ message: 'Table ID and item details are required' });
+    }
+    
+    // Check if table exists
+    const table = await Table.findByPk(tableId);
+    if (!table) {
+      return res.status(404).json({ message: 'Table not found' });
+    }
+    
+    // Get menu item details
+    const menuItem = await MenuItem.findByPk(item.id);
+    if (!menuItem) {
+      return res.status(404).json({ message: `Menu item with ID ${item.id} not found` });
+    }
+    
+    // Calculate total amount
+    const totalAmount = menuItem.price * item.quantity;
+    
+    // Create order
+    const order = await Order.create({
+      tableId,
+      status: 'pending',
+      totalAmount,
+      notes: note || ''
+    });
+    
+    // Create order item
+    await OrderItem.create({
+      orderId: order.id,
+      menuItemId: item.id,
+      quantity: item.quantity,
+      price: menuItem.price,
+      status: 'pending',
+      notes: note || ''
+    });
+    
+    // Update table status without updating updatedAt
+    if (table.status !== 'occupied') {
+      // Sử dụng raw query để không cập nhật updatedAt
+      await sequelize.query(
+        'UPDATE Tables SET status = :status WHERE id = :id',
+        {
+          replacements: { status: 'occupied', id: tableId },
+          type: sequelize.QueryTypes.UPDATE
+        }
+      );
+    }
+    
+    // Get complete order with items
+    const completeOrder = await Order.findByPk(order.id, {
+      include: [
+        { model: Table },
+        { 
+          model: OrderItem,
+          include: [{ model: MenuItem }]
+        }
+      ]
+    });
+    
+    res.status(201).json(completeOrder);
+  } catch (error) {
+    console.error('Error creating direct order:', error);
+    res.status(500).json({ 
+      message: 'Không thể tạo đơn hàng trực tiếp. Vui lòng thử lại sau.',
+      error: error.message
+    });
+  }
+});
+
 // Update order status - Staff only
 router.put('/:id/status', authenticateToken, async (req, res) => {
   try {
@@ -650,5 +760,8 @@ router.post('/:id/payment', authenticateToken, isWaiter, async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 });
+
+// API tổng hợp giá trị đơn hàng theo tháng
+router.get('/total-revenue-by-month', authenticateToken, isAdmin, orderController.getTotalRevenueByMonth);
 
 module.exports = router; 

@@ -8,6 +8,8 @@ const Payment = require('./Payment');
 const Promotion = require('./Promotion');
 const OrderPromotion = require('./OrderPromotion');
 const Salary = require('./Salary');
+const SalaryRate = require('./SalaryRate');
+const SalaryDetail = require('./SalaryDetail');
 const Ingredient = require('./Ingredient');
 const Supplier = require('./Supplier');
 const PurchaseOrder = require('./PurchaseOrder');
@@ -53,6 +55,16 @@ Promotion.hasMany(OrderPromotion, { foreignKey: 'promotionId' });
 // Salary associations
 Salary.belongsTo(User, { foreignKey: 'userId' });
 User.hasMany(Salary, { foreignKey: 'userId' });
+
+// SalaryDetail associations
+SalaryDetail.belongsTo(Salary, { foreignKey: 'salaryId' });
+Salary.hasMany(SalaryDetail, { foreignKey: 'salaryId' });
+
+SalaryDetail.belongsTo(SalaryRate, { foreignKey: 'salaryRateId' });
+SalaryRate.hasMany(SalaryDetail, { foreignKey: 'salaryRateId' });
+
+SalaryDetail.belongsTo(Attendance, { foreignKey: 'attendanceId' });
+Attendance.hasMany(SalaryDetail, { foreignKey: 'attendanceId' });
 
 // Inventory associations
 RecipeIngredient.belongsTo(MenuItem, { foreignKey: 'menuItemId' });
@@ -122,6 +134,12 @@ Attendance.belongsTo(User, { foreignKey: 'userId' });
 User.hasMany(Schedule, { foreignKey: 'userId' });
 Schedule.belongsTo(User, { foreignKey: 'userId' });
 
+// Attendance - Schedule relationship (một bản ghi chấm công liên kết với một lịch làm việc)
+Attendance.belongsTo(Schedule, { 
+  foreignKey: 'scheduleId',
+  constraints: false // Không áp dụng ràng buộc khóa ngoại vì có thể có attendance mà không có schedule tương ứng
+});
+
 module.exports = {
   User,
   Table,
@@ -133,6 +151,8 @@ module.exports = {
   Promotion,
   OrderPromotion,
   Salary,
+  SalaryRate,
+  SalaryDetail,
   Ingredient,
   Supplier,
   PurchaseOrder,

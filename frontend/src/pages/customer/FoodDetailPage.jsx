@@ -46,6 +46,7 @@ import {
   Person as PersonIcon,
   Send as SendIcon,
   Info as InfoIcon,
+  RestaurantMenu as OrderIcon,
 } from '@mui/icons-material';
 
 const FoodDetailPage = () => {
@@ -53,7 +54,7 @@ const FoodDetailPage = () => {
   const navigate = useNavigate();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  const { addToCart, tableId, getUnreviewedItems, getUserReviewForFood } = useCart();
+  const { addToCart, tableId, orderDirectly } = useCart();
   
   const [food, setFood] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -65,10 +66,15 @@ const FoodDetailPage = () => {
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [activeTab, setActiveTab] = useState(0);
   
-  // Kiểm tra xem người dùng đã đánh giá món ăn này chưa
+  // Thêm state cho dialog xác nhận đặt món
+  const [orderDialogOpen, setOrderDialogOpen] = useState(false);
+  const [orderNote, setOrderNote] = useState('');
+  const [isOrdering, setIsOrdering] = useState(false);
+  
+  // Cập nhật state cho đánh giá
   const [hasReviewed, setHasReviewed] = useState(false);
-  // Kiểm tra xem người dùng đã mua món ăn này chưa
-  const [hasPurchased, setHasPurchased] = useState(false);
+  // Mặc định cho phép đánh giá
+  const [hasPurchased, setHasPurchased] = useState(true);
   // State cho form đánh giá
   const [userRating, setUserRating] = useState(5);
   const [reviewComment, setReviewComment] = useState('');
@@ -96,14 +102,7 @@ const FoodDetailPage = () => {
         // Lấy rating từ dữ liệu thực
         setAvgRating(response.avgRating || 0);
         
-        // Kiểm tra xem người dùng đã mua món ăn này chưa
-        const unreviewedItems = getUnreviewedItems();
-        const hasPurchasedItem = unreviewedItems.some(item => item.id === parseInt(foodId));
-        setHasPurchased(hasPurchasedItem);
-        
-        // Kiểm tra xem người dùng đã đánh giá món ăn này chưa
-        const userReview = getUserReviewForFood(parseInt(foodId));
-        setHasReviewed(!!userReview);
+        // Không còn kiểm tra món đã mua hay đã đánh giá từ CartContext
         
         setLoading(false);
       } catch (err) {
@@ -114,7 +113,7 @@ const FoodDetailPage = () => {
     };
     
     fetchFoodDetails();
-  }, [foodId, navigate, tableId, getUnreviewedItems, getUserReviewForFood]);
+  }, [foodId, navigate, tableId]);
   
   const handleIncreaseQuantity = () => {
     setQuantity(prev => prev + 1);
@@ -136,6 +135,46 @@ const FoodDetailPage = () => {
       });
       setSnackbarMessage(`Đã thêm ${quantity} ${food.name} vào giỏ hàng`);
       setSnackbarOpen(true);
+    }
+  };
+  
+  // Xử lý mở dialog đặt món
+  const handleOpenOrderDialog = () => {
+    setOrderDialogOpen(true);
+  };
+  
+  // Xử lý đóng dialog đặt món
+  const handleCloseOrderDialog = () => {
+    setOrderDialogOpen(false);
+  };
+  
+  // Xử lý đặt món trực tiếp
+  const handleOrderDirectly = async () => {
+    if (food) {
+      try {
+        setIsOrdering(true);
+        
+        const orderItem = {
+          id: food.id,
+          name: food.name,
+          price: food.price,
+          quantity: quantity,
+        };
+        
+        const orderId = await orderDirectly(orderItem, orderNote);
+        
+        setSnackbarMessage(`Đã đặt thành công ${quantity} ${food.name}! Mã đơn hàng: ${orderId}`);
+        setSnackbarOpen(true);
+        
+        setOrderDialogOpen(false);
+        setOrderNote('');
+      } catch (error) {
+        console.error('Lỗi khi đặt món:', error);
+        setSnackbarMessage('Có lỗi xảy ra khi đặt món. Vui lòng thử lại.');
+        setSnackbarOpen(true);
+      } finally {
+        setIsOrdering(false);
+      }
     }
   };
   
@@ -363,12 +402,6 @@ const FoodDetailPage = () => {
                 color="secondary" 
                 sx={{ mr: 1, mb: 1 }} 
               />
-              {food.isVegetarian && (
-                <Chip label="Chay" sx={{ mr: 1, mb: 1, bgcolor: 'success.light', color: 'white' }} />
-              )}
-              {food.isSpicy && (
-                <Chip label="Cay" sx={{ mr: 1, mb: 1, bgcolor: 'error.light', color: 'white' }} />
-              )}
             </Box>
             
             <Divider sx={{ mb: 2 }} />
@@ -399,22 +432,38 @@ const FoodDetailPage = () => {
                 </IconButton>
               </Box>
               
-              <Button 
-                variant="contained" 
-                startIcon={<CartIcon />} 
-                onClick={handleAddToCart}
-                sx={{ 
-                  py: { xs: 1, sm: 1.5 }, 
-                  fontWeight: 'bold',
-                  flexGrow: 1,
-                  bgcolor: theme.palette.primary.main,
-                  '&:hover': {
-                    bgcolor: theme.palette.primary.dark,
-                  }
-                }}
-              >
-                Thêm vào giỏ hàng
-              </Button>
+              <Box sx={{ display: 'flex', gap: 1, flexGrow: 1, flexDirection: isMobile ? 'column' : 'row' }}>
+                <Button 
+                  variant="contained" 
+                  startIcon={<CartIcon />} 
+                  onClick={handleAddToCart}
+                  sx={{ 
+                    py: { xs: 1, sm: 1.5 }, 
+                    fontWeight: 'bold',
+                    flexGrow: 1,
+                    bgcolor: theme.palette.primary.main,
+                    '&:hover': {
+                      bgcolor: theme.palette.primary.dark,
+                    }
+                  }}
+                >
+                  Thêm vào giỏ hàng
+                </Button>
+                
+                <Button 
+                  variant="contained" 
+                  color="secondary"
+                  startIcon={<OrderIcon />} 
+                  onClick={handleOpenOrderDialog}
+                  sx={{ 
+                    py: { xs: 1, sm: 1.5 }, 
+                    fontWeight: 'bold',
+                    flexGrow: 1
+                  }}
+                >
+                  Đặt ngay
+                </Button>
+              </Box>
             </Box>
           </Box>
         </Grid>
@@ -466,13 +515,6 @@ const FoodDetailPage = () => {
                   </Typography>
                   <Typography variant="body2" sx={{ mb: 2 }}>
                     {food.preparationTime}
-                  </Typography>
-                  
-                  <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 1 }}>
-                    Dị ứng:
-                  </Typography>
-                  <Typography variant="body2">
-                    {food.allergens || 'Không có thông tin'}
                   </Typography>
                 </Grid>
               </Grid>
@@ -609,6 +651,59 @@ const FoodDetailPage = () => {
           )}
         </Paper>
       </Box>
+      
+      {/* Dialog xác nhận đặt món ngay */}
+      <Dialog
+        open={orderDialogOpen}
+        onClose={handleCloseOrderDialog}
+        aria-labelledby="order-dialog-title"
+        aria-describedby="order-dialog-description"
+        fullWidth
+        maxWidth="sm"
+      >
+        <DialogTitle id="order-dialog-title">
+          Xác nhận đặt món
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText id="order-dialog-description">
+            Bạn sắp đặt trực tiếp {quantity} {food.name}. Tổng cộng: {formatPrice(food.price * quantity)}
+          </DialogContentText>
+          
+          <TextField
+            autoFocus
+            margin="dense"
+            id="note"
+            label="Ghi chú thêm (nếu có)"
+            type="text"
+            fullWidth
+            multiline
+            rows={3}
+            variant="outlined"
+            placeholder="Ví dụ: Ít đường, thêm nước đá, v.v..."
+            value={orderNote}
+            onChange={(e) => setOrderNote(e.target.value)}
+            sx={{ mt: 2 }}
+          />
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button 
+            onClick={handleCloseOrderDialog}
+            variant="outlined"
+            disabled={isOrdering}
+          >
+            Hủy
+          </Button>
+          <Button 
+            onClick={handleOrderDirectly}
+            variant="contained"
+            color="secondary"
+            disabled={isOrdering}
+            startIcon={isOrdering ? <CircularProgress size={20} /> : <OrderIcon />}
+          >
+            {isOrdering ? 'Đang xử lý...' : 'Xác nhận đặt món'}
+          </Button>
+        </DialogActions>
+      </Dialog>
       
       {/* Snackbar thông báo */}
       <Snackbar

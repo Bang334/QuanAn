@@ -14,6 +14,11 @@ const models = require('./models');
 // Import the menu availability checker
 const { checkAllMenuItemsAvailability } = require('./scripts/check-menu-availability');
 
+// Import scheduled tasks
+const { scheduleSalaryGeneration } = require('./utils/scheduledTasks');
+const { scheduleAbsentMarking } = require('./cron/attendance.cron');
+const { scheduleAutoReject } = require('./cron/schedule.cron');
+
 dotenv.config();
 
 const app = express();
@@ -55,6 +60,8 @@ app.use('/api/reviews', require('./routes/review.routes'));
 app.use('/api/payments', require('./routes/payment.routes'));
 app.use('/api/promotions', require('./routes/promotion.routes'));
 app.use('/api/salaries', require('./routes/salary.routes'));
+app.use('/api/salary', require('./routes/salary.routes'));
+app.use('/api/salary-rate', require('./routes/salaryRate.routes'));
 app.use('/api/inventory', require('./routes/inventory.routes'));
 app.use('/api/kitchen-permissions', require('./routes/kitchen-permissions.routes'));
 app.use('/api/attendance', require('./routes/attendance.routes'));
@@ -197,6 +204,15 @@ const startServer = async () => {
     // Run the check once at startup
     console.log('Running initial menu item availability check...');
     await checkAllMenuItemsAvailability();
+    
+    // Initialize automatic salary generation task
+    // scheduleSalaryGeneration();
+    
+    // Initialize automatic absent marking task
+    scheduleAbsentMarking();
+    
+    // Initialize automatic schedule rejection task
+    scheduleAutoReject();
     
     server.listen(PORT, () => {
       console.log(`Server is running on port ${PORT}`);

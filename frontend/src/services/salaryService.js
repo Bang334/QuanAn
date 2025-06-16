@@ -1,12 +1,12 @@
 import axios from 'axios';
 import { API_URL } from '../config';
 
-const API = `${API_URL}/api/salaries`;
+const API = `${API_URL}/api/salary`;
 
 // Lấy lương của nhân viên đang đăng nhập
 export const getMyAllSalaries = async () => {
   try {
-    const response = await axios.get(`${API}/my-salary`, {
+    const response = await axios.get(`${API}/me`, {
       headers: {
         Authorization: `Bearer ${localStorage.getItem('token')}`
       }
@@ -14,6 +14,28 @@ export const getMyAllSalaries = async () => {
     return response.data;
   } catch (error) {
     console.error('Error fetching my salaries:', error);
+    throw error;
+  }
+};
+
+// Lấy tất cả mức lương (SalaryRate) cho các role
+export const getAllSalaryRates = async () => {
+  const response = await axios.get(`${API_URL}/api/salary-rate`, {
+    headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+  });
+  return response.data;
+};
+// Lấy chi tiết lương theo ngày làm việc của nhân viên trong tháng
+export const getSalaryDailyDetails = async (salaryId) => {
+  try {
+    const response = await axios.get(`${API}/me/${salaryId}/daily-details`, {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem('token')}`
+      }
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching salary daily details:', error);
     throw error;
   }
 };
@@ -122,9 +144,9 @@ export const getCurrentMonthYear = () => {
 export const calculateTotalSalary = (salary) => {
   if (!salary) return 0;
   
-  const base = parseFloat(salary.baseSalary) || 0;
+  const hourlyPay = parseFloat(salary.totalHourlyPay) || 0;
   const bonus = parseFloat(salary.bonus) || 0;
   const deduction = parseFloat(salary.deduction) || 0;
   
-  return base + bonus - deduction;
+  return hourlyPay + bonus - deduction;
 }; 

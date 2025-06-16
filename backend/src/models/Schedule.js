@@ -26,22 +26,23 @@ Schedule.init(
       type: DataTypes.ENUM('morning', 'afternoon', 'evening', 'night', 'full_day'),
       allowNull: false,
     },
-    startTime: {
-      type: DataTypes.TIME,
-      allowNull: false,
-    },
-    endTime: {
-      type: DataTypes.TIME,
-      allowNull: false,
-    },
     status: {
-      type: DataTypes.ENUM('scheduled', 'confirmed', 'completed', 'cancelled'),
+      type: DataTypes.ENUM('scheduled', 'confirmed', 'cancelled', 'rejected'),
       allowNull: false,
       defaultValue: 'scheduled',
     },
     note: {
       type: DataTypes.TEXT,
       allowNull: true,
+    },
+    rejectReason: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
+    createdBy: {
+      type: DataTypes.ENUM('admin', 'staff'),
+      allowNull: false,
+      defaultValue: 'admin',
     }
   },
   {

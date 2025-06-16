@@ -1,0 +1,265 @@
+Table users {
+  id int [pk, increment]
+  name varchar
+  email varchar
+  password varchar
+  role enum('admin', 'kitchen', 'waiter')
+}
+
+Table tables {
+  id int [pk, increment]
+  name varchar
+  qrCode varchar
+  status enum('available', 'occupied', 'reserved')
+  capacity int
+}
+
+Table menu_items {
+  id int [pk, increment]
+  name varchar
+  description text
+  price decimal
+  image varchar
+  category varchar
+  isAvailable boolean
+  isPopular boolean
+}
+
+Table orders {
+  id int [pk, increment]
+  tableId int [ref: > tables.id]
+  status enum('pending', 'preparing', 'ready', 'served', 'payment_requested', 'completed', 'cancelled')
+  totalAmount decimal
+  paymentMethod enum('cash', 'bank')
+  notes text
+}
+
+Table order_items {
+  id int [pk, increment]
+  orderId int [ref: > orders.id]
+  menuItemId int [ref: > menu_items.id]
+  quantity int
+  price decimal
+  status enum('pending', 'cooking', 'ready', 'served', 'cancelled')
+  notes text
+}
+
+Table reviews {
+  id int [pk, increment]
+  menuItemId int [ref: > menu_items.id]
+  orderId int [ref: > orders.id]
+  tableId int [ref: > tables.id]
+  rating int
+  comment text
+  reviewDate date
+  isVisible boolean
+}
+
+Table payments {
+  id int [pk, increment]
+  orderId int [ref: > orders.id]
+  amount decimal
+  paymentMethod enum('cash', 'bank')
+  paymentDate date
+  status enum('completed', 'refunded', 'failed')
+  transactionId varchar
+  refundAmount decimal
+  notes text
+}
+
+Table promotions {
+  id int [pk, increment]
+  name varchar
+  description text
+  discountType enum('percent', 'fixed')
+  discountValue decimal
+  startDate date
+  endDate date
+  isActive boolean
+  minimumOrderAmount decimal
+  maximumDiscountAmount decimal
+  applicableCategories varchar
+  usageLimit int
+  usageCount int
+  promotionCode varchar
+}
+
+Table order_promotions {
+  id int [pk, increment]
+  orderId int [ref: > orders.id]
+  promotionId int [ref: > promotions.id]
+  discountAmount decimal
+}
+
+Table salaries {
+  id int [pk, increment]
+  userId int [ref: > users.id]
+  month int
+  year int
+  totalHours decimal
+  totalHourlyPay decimal
+  bonus decimal
+  deduction decimal
+  workingDays int
+  status enum('pending', 'paid')
+  note text
+  paidAt date
+}
+
+Table salary_details {
+  id int [pk, increment]
+  salaryId int [ref: > salaries.id]
+  salaryRateId int [ref: > salary_rates.id]
+  attendanceId int [ref: > attendances.id]
+  date date
+  shift enum('morning', 'afternoon', 'evening', 'night', 'full_day')
+  amount decimal
+}
+
+Table salary_rates {
+  id int [pk, increment]
+  role enum('waiter', 'kitchen')
+  shift enum('morning', 'afternoon', 'evening', 'night', 'full_day')
+  hourlyRate decimal
+  baseSalary decimal
+  effectiveDate date
+  isActive boolean
+  note text
+}
+
+Table ingredients {
+  id int [pk, increment]
+  name varchar
+  unit varchar
+  currentStock decimal
+  minStockLevel decimal
+  costPerUnit decimal
+  category varchar
+  expiryDate date
+  location varchar
+  isActive boolean
+  image varchar
+  supplier varchar
+}
+
+Table suppliers {
+  id int [pk, increment]
+  name varchar
+  contactPerson varchar
+  phone varchar
+  email varchar
+  address text
+  paymentTerms varchar
+  notes text
+  isActive boolean
+  rating int
+}
+
+Table purchase_orders {
+  id int [pk, increment]
+  supplierId int [ref: > suppliers.id]
+  requesterId int [ref: > users.id]
+  approverId int [ref: > users.id]
+  orderDate date
+  expectedDeliveryDate date
+  actualDeliveryDate date
+  status enum('pending', 'approved', 'rejected', 'delivered', 'cancelled')
+  totalAmount decimal
+  paymentStatus enum('unpaid', 'partial', 'paid')
+  paymentDate date
+  notes text
+  rejectReason text
+  invoiceNumber varchar
+  autoApproved boolean
+}
+
+Table purchase_order_items {
+  id int [pk, increment]
+  purchaseOrderId int [ref: > purchase_orders.id]
+  ingredientId int [ref: > ingredients.id]
+  quantity decimal
+  unitPrice decimal
+  totalPrice decimal
+  receivedQuantity decimal
+  notes text
+  status enum('pending', 'partial', 'complete', 'cancelled')
+}
+
+Table recipe_ingredients {
+  id int [pk, increment]
+  menuItemId int [ref: > menu_items.id]
+  ingredientId int [ref: > ingredients.id]
+  quantity decimal
+  notes text
+  isOptional boolean
+  preparationMethod text
+}
+
+Table inventory_transactions {
+  id int [pk, increment]
+  ingredientId int [ref: > ingredients.id]
+  quantity decimal
+  type enum('purchase', 'usage', 'adjustment', 'waste', 'return')
+  referenceId int
+  referenceType varchar
+  previousQuantity decimal
+  newQuantity decimal
+  unitPrice decimal
+  notes text
+  userId int [ref: > users.id]
+  transactionDate date
+}
+
+Table kitchen_permissions {
+  id int [pk, increment]
+  userId int [ref: > users.id]
+  grantedById int [ref: > users.id]
+  canAutoApprove boolean
+  maxOrderValue decimal
+  notes text
+  grantedAt date
+}
+
+Table ingredient_price_history {
+  id int [pk, increment]
+  ingredientId int [ref: > ingredients.id]
+  oldPrice decimal
+  newPrice decimal
+  changeDate date
+  changeReason varchar
+  changedBy int [ref: > users.id]
+}
+
+Table ingredient_usage {
+  id int [pk, increment]
+  orderItemId int [ref: > order_items.id]
+  ingredientId int [ref: > ingredients.id]
+  quantity decimal
+  usageDate date
+  orderId int [ref: > orders.id]
+  menuItemId int [ref: > menu_items.id]
+  recipeIngredientId int [ref: > recipe_ingredients.id]
+}
+
+Table attendances {
+  id int [pk, increment]
+  userId int [ref: > users.id]
+  scheduleId int [ref: > schedules.id]
+  date date
+  timeIn time
+  timeOut time
+  hoursWorked decimal
+  status enum('present', 'absent', 'late')
+  note text
+}
+
+Table schedules {
+  id int [pk, increment]
+  userId int [ref: > users.id]
+  date date
+  shift enum('morning', 'afternoon', 'evening', 'night', 'full_day')
+  status enum('scheduled', 'confirmed', 'cancelled', 'rejected')
+  note text
+  rejectReason text
+  createdBy enum('admin', 'staff')
+} 
