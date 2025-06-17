@@ -25,8 +25,8 @@ router.get('/', authenticateToken, async (req, res) => {
   }
 });
 
-// Get a single table - Accessible without authentication for customer table checking
-router.get('/:id', async (req, res) => {
+// Get a single table
+router.get('/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
     const table = await Table.findByPk(id);
