@@ -3,6 +3,17 @@ const { Op } = require('sequelize');
 const dayjs = require('dayjs');
 const { getShiftTimes } = require('../utils/shiftTimes');
 
+// Thêm plugin isSameOrBefore và isBefore để sử dụng trong kiểm tra thời gian
+const isSameOrBefore = require('dayjs/plugin/isSameOrBefore');
+const isSameOrAfter = require('dayjs/plugin/isSameOrAfter');
+dayjs.extend(isSameOrBefore);
+dayjs.extend(isSameOrAfter);
+
+// Các ràng buộc về thời gian cho lịch làm việc:
+// 1. Không thể phân công lịch làm việc cho ngày trong quá khứ
+// 2. Không thể phân công ca làm việc đã bắt đầu hoặc đã kết thúc (trong ngày hiện tại)
+// 3. Phải phân công trước thời điểm bắt đầu ca ít nhất 30 phút
+
 // Lấy danh sách lịch làm việc của bản thân
 exports.getMySchedules = async (req, res) => {
   try {
@@ -265,6 +276,38 @@ exports.createSchedule = async (req, res) => {
       return res.status(400).json({ message: 'Thiếu thông tin nhân viên, ngày hoặc ca làm việc' });
     }
     
+    // Kiểm tra không thể phân công lịch làm việc ở quá khứ
+    const currentDate = dayjs();
+    const scheduleDate = dayjs(date);
+    
+    // Nếu ngày phân công đã qua
+    if (scheduleDate.isBefore(currentDate, 'day')) {
+      return res.status(400).json({ 
+        message: 'Không thể phân công lịch làm việc trong quá khứ'
+      });
+    }
+    
+    // Lấy thông tin thời gian ca làm việc
+    const { startTime } = getShiftTimes(shift);
+    
+    // Tạo đối tượng datetime cho thời điểm ca bắt đầu
+    const shiftStartDateTime = scheduleDate.hour(parseInt(startTime.split(':')[0])).minute(parseInt(startTime.split(':')[1]));
+    
+    // Nếu đã quá thời gian của ca làm việc trong ngày hiện tại
+    if (scheduleDate.isSame(currentDate, 'day') && currentDate.isAfter(shiftStartDateTime)) {
+      return res.status(400).json({ 
+        message: `Không thể phân công ca ${shift} vì thời gian ca đã bắt đầu hoặc đã kết thúc`
+      });
+    }
+    
+    // Nếu thời gian hiện tại gần thời gian bắt đầu ca ít hơn 30 phút
+    const minTimeBeforeShift = shiftStartDateTime.subtract(30, 'minute');
+    if (currentDate.isAfter(minTimeBeforeShift)) {
+      return res.status(400).json({ 
+        message: 'Phải phân công ca làm việc trước thời điểm bắt đầu ca ít nhất 30 phút'
+      });
+    }
+    
     // Kiểm tra xem đã có lịch làm việc cho nhân viên này vào ngày này với ca này chưa
     const existingSchedule = await Schedule.findOne({
       where: {
@@ -297,7 +340,7 @@ exports.createSchedule = async (req, res) => {
     }
     
     // Lấy thời gian bắt đầu và kết thúc từ loại ca
-    const { startTime, endTime } = getShiftTimes(shift);
+    const { endTime } = getShiftTimes(shift);
     
     const schedule = await Schedule.create({
       userId,
@@ -399,10 +442,56 @@ exports.createBatchSchedules = async (req, res) => {
       errors: []
     };
     
+    // Kiểm tra ràng buộc thời gian cho tất cả các ngày
+    const currentDate = dayjs();
+    
+    // Lấy thông tin thời gian ca làm việc
+    const { startTime } = getShiftTimes(shift);
+    
     // Xử lý từng cặp user-date
     for (const userId of userIds) {
       for (const date of dates) {
         try {
+          // Kiểm tra không thể phân công lịch làm việc ở quá khứ
+          const scheduleDate = dayjs(date);
+          
+          // Nếu ngày phân công đã qua
+          if (scheduleDate.isBefore(currentDate, 'day')) {
+            result.errors.push({
+              userId,
+              date,
+              shift,
+              message: 'Không thể phân công lịch làm việc trong quá khứ'
+            });
+            continue; // Bỏ qua và xử lý bản ghi tiếp theo
+          }
+          
+          // Tạo đối tượng datetime cho thời điểm ca bắt đầu
+          const shiftStartDateTime = scheduleDate.hour(parseInt(startTime.split(':')[0])).minute(parseInt(startTime.split(':')[1]));
+          
+          // Nếu đã quá thời gian của ca làm việc trong ngày hiện tại
+          if (scheduleDate.isSame(currentDate, 'day') && currentDate.isAfter(shiftStartDateTime)) {
+            result.errors.push({
+              userId,
+              date,
+              shift,
+              message: `Không thể phân công ca ${shift} vì thời gian ca đã bắt đầu hoặc đã kết thúc`
+            });
+            continue; // Bỏ qua và xử lý bản ghi tiếp theo
+          }
+          
+          // Nếu thời gian hiện tại gần thời gian bắt đầu ca ít hơn 30 phút
+          const minTimeBeforeShift = shiftStartDateTime.subtract(30, 'minute');
+          if (currentDate.isAfter(minTimeBeforeShift)) {
+            result.errors.push({
+              userId,
+              date,
+              shift,
+              message: 'Phải phân công ca làm việc trước thời điểm bắt đầu ca ít nhất 30 phút'
+            });
+            continue; // Bỏ qua và xử lý bản ghi tiếp theo
+          }
+          
           // Kiểm tra xem đã tồn tại lịch cho ca này chưa
           const existingSchedule = await Schedule.findOne({
             where: {
@@ -444,7 +533,7 @@ exports.createBatchSchedules = async (req, res) => {
           }
           
           // Nếu không vi phạm ràng buộc nào, tạo lịch làm việc
-          const { startTime, endTime } = getShiftTimes(shift);
+          const { endTime } = getShiftTimes(shift);
           
           const schedule = await Schedule.create({
             userId,
@@ -462,22 +551,18 @@ exports.createBatchSchedules = async (req, res) => {
             endTime
           });
         } catch (error) {
-          console.error(`Error creating schedule for userId=${userId}, date=${date}:`, error);
+          console.error('Error creating batch schedule:', error);
           result.errors.push({
             userId,
             date,
             shift,
-            message: 'Lỗi khi tạo lịch làm việc'
+            message: 'Lỗi khi tạo lịch làm việc: ' + error.message
           });
         }
       }
     }
     
-    res.status(201).json({
-      message: `Đã tạo thành công ${result.success.length} lịch làm việc, ${result.errors.length} lỗi`,
-      success: result.success,
-      errors: result.errors
-    });
+    res.status(201).json(result);
   } catch (error) {
     console.error('Error creating batch schedules:', error);
     res.status(500).json({ message: 'Lỗi khi tạo lịch làm việc hàng loạt' });
@@ -1077,56 +1162,6 @@ exports.getStaffRegisteredSchedules = async (req, res) => {
   }
 };
 
-// Tự động từ chối lịch làm việc chưa phản hồi trước 30 phút ca đó bắt đầu
-exports.autoRejectUnconfirmedSchedules = async () => {
-  try {
-    const now = dayjs();
-    const today = now.format('YYYY-MM-DD');
-    
-    // Lấy tất cả lịch làm việc của ngày hôm nay có trạng thái scheduled (chưa phản hồi)
-    const schedules = await Schedule.findAll({
-      where: {
-        date: today,
-        status: 'scheduled' // Chỉ xét những lịch làm việc chưa được confirm
-      }
-    });
-    
-    if (!schedules || schedules.length === 0) {
-      console.log('Không có lịch làm việc nào cần xét reject tự động');
-      return [];
-    }
-    
-    const rejectedSchedules = [];
-    
-    for (const schedule of schedules) {
-      // Lấy thông tin thời gian bắt đầu của ca
-      const { startTime } = getShiftTimes(schedule.shift);
-      if (!startTime) continue;
-      
-      // Tạo đối tượng dayjs cho thời gian bắt đầu ca
-      const shiftStartMoment = dayjs(`${today} ${startTime}`);
-      
-      // Tính khoảng cách thời gian từ hiện tại đến giờ bắt đầu ca (tính bằng phút)
-      const minutesUntilShift = shiftStartMoment.diff(now, 'minute');
-      
-      // Nếu thời gian còn lại đến ca làm việc ít hơn 30 phút và vẫn còn ở trạng thái scheduled, tự động reject
-      if (minutesUntilShift >= 0 && minutesUntilShift < 30) {
-        await schedule.update({
-          status: 'rejected',
-          rejectReason: 'Tự động từ chối do nhân viên không phản hồi trước 30 phút ca bắt đầu'
-        });
-        
-        rejectedSchedules.push(schedule);
-      }
-    }
-    
-    return rejectedSchedules;
-  } catch (error) {
-    console.error('Lỗi khi tự động reject lịch làm việc chưa phản hồi:', error);
-    return [];
-  }
-};
-
 // Export all functions
 module.exports = {
   getAllSchedules: exports.getAllSchedules,
@@ -1145,6 +1180,5 @@ module.exports = {
   getAvailableShifts: exports.getAvailableShifts,
   getShiftStats: exports.getShiftStats,
   getWeeklyScheduleSummary: exports.getWeeklyScheduleSummary,
-  getStaffRegisteredSchedules: exports.getStaffRegisteredSchedules,
-  autoRejectUnconfirmedSchedules: exports.autoRejectUnconfirmedSchedules
+  getStaffRegisteredSchedules: exports.getStaffRegisteredSchedules
 };

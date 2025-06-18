@@ -1077,56 +1077,6 @@ exports.getStaffRegisteredSchedules = async (req, res) => {
   }
 };
 
-// Tự động từ chối lịch làm việc chưa phản hồi trước 30 phút ca đó bắt đầu
-exports.autoRejectUnconfirmedSchedules = async () => {
-  try {
-    const now = dayjs();
-    const today = now.format('YYYY-MM-DD');
-    
-    // Lấy tất cả lịch làm việc của ngày hôm nay có trạng thái scheduled (chưa phản hồi)
-    const schedules = await Schedule.findAll({
-      where: {
-        date: today,
-        status: 'scheduled' // Chỉ xét những lịch làm việc chưa được confirm
-      }
-    });
-    
-    if (!schedules || schedules.length === 0) {
-      console.log('Không có lịch làm việc nào cần xét reject tự động');
-      return [];
-    }
-    
-    const rejectedSchedules = [];
-    
-    for (const schedule of schedules) {
-      // Lấy thông tin thời gian bắt đầu của ca
-      const { startTime } = getShiftTimes(schedule.shift);
-      if (!startTime) continue;
-      
-      // Tạo đối tượng dayjs cho thời gian bắt đầu ca
-      const shiftStartMoment = dayjs(`${today} ${startTime}`);
-      
-      // Tính khoảng cách thời gian từ hiện tại đến giờ bắt đầu ca (tính bằng phút)
-      const minutesUntilShift = shiftStartMoment.diff(now, 'minute');
-      
-      // Nếu thời gian còn lại đến ca làm việc ít hơn 30 phút và vẫn còn ở trạng thái scheduled, tự động reject
-      if (minutesUntilShift >= 0 && minutesUntilShift < 30) {
-        await schedule.update({
-          status: 'rejected',
-          rejectReason: 'Tự động từ chối do nhân viên không phản hồi trước 30 phút ca bắt đầu'
-        });
-        
-        rejectedSchedules.push(schedule);
-      }
-    }
-    
-    return rejectedSchedules;
-  } catch (error) {
-    console.error('Lỗi khi tự động reject lịch làm việc chưa phản hồi:', error);
-    return [];
-  }
-};
-
 // Export all functions
 module.exports = {
   getAllSchedules: exports.getAllSchedules,
@@ -1145,6 +1095,5 @@ module.exports = {
   getAvailableShifts: exports.getAvailableShifts,
   getShiftStats: exports.getShiftStats,
   getWeeklyScheduleSummary: exports.getWeeklyScheduleSummary,
-  getStaffRegisteredSchedules: exports.getStaffRegisteredSchedules,
-  autoRejectUnconfirmedSchedules: exports.autoRejectUnconfirmedSchedules
+  getStaffRegisteredSchedules: exports.getStaffRegisteredSchedules
 };

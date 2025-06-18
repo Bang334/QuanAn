@@ -984,20 +984,23 @@ const AdminAttendancePage = () => {
   // Hàm kiểm tra ca làm việc có hợp lệ không (không phải trong quá khứ và không phải trong vòng 30 phút)
   const isShiftDisabled = (shift, selectedDate) => {
     if (!selectedDate) return false;
-
-    const now = dayjs();
-    const selected = dayjs(selectedDate).startOf('day');
-    const today = now.startOf('day');
-
-    // 1. Ngày quá khứ
-    if (selected.isBefore(today, 'day')) return true;
-
-    // 2. Ngày tương lai
-    if (selected.isAfter(today, 'day')) return false;
-
-    // 3. Ngày hiện tại
-    if (shift === 'night') return true;
-
+    
+    // So sánh chỉ lấy phần ngày, không lấy giờ phút giây
+    const currentDate = dayjs().startOf('day');
+    const scheduleDate = dayjs(selectedDate).startOf('day');
+    
+    // Nếu ngày đã qua, disable tất cả ca
+    if (scheduleDate.isBefore(currentDate, 'day')) {
+      return true;
+    }
+    // Nếu ngày trong tương lai, enable tất cả ca
+    if (scheduleDate.isAfter(currentDate, 'day')) {
+      return false;
+    }
+    // Ngày hiện tại:
+    if (shift === 'night') {
+      return true;
+    }
     const shiftTimes = {
       morning: '06:00:00',
       afternoon: '12:00:00',
@@ -1005,11 +1008,11 @@ const AdminAttendancePage = () => {
     };
     const shiftStartTime = shiftTimes[shift];
     if (!shiftStartTime) return false;
-
-    // Tạo shiftStart cho ngày hôm nay
-    const shiftStart = today.hour(parseInt(shiftStartTime.split(':')[0])).minute(parseInt(shiftStartTime.split(':')[1])).second(0);
-    // Nếu giờ hiện tại đã qua hoặc còn dưới 30 phút thì disable
-    return shiftStart.isBefore(now.add(30, 'minute'));
+    // Tạo datetime cho thời điểm bắt đầu ca
+    const today = dayjs().format('YYYY-MM-DD');
+    const shiftStart = dayjs(`${today} ${shiftStartTime}`);
+    const timeWithBuffer = dayjs().add(30, 'minute');
+    return shiftStart.isBefore(timeWithBuffer);
   };
 
   const handleOpenDailyStats = () => {

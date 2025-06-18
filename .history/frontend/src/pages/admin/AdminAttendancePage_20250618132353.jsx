@@ -184,22 +184,14 @@ const AdminAttendancePage = () => {
 
   const handleDeleteAttendance = (id) => {
     console.log("Đang xóa chấm công...");
-    // Hiển thị thông báo đang xử lý
-    const hide = message.loading('Đang xóa dữ liệu chấm công...', 0);
-    
     axios.delete(`${API_URL}/api/attendance/admin/${id}`, {
       headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
     })
     .then(() => {
-      // Đóng thông báo loading
-      hide();
-      // Hiển thị thông báo thành công
-      message.success('Xóa dữ liệu chấm công thành công', 3);
+      message.success('Xóa dữ liệu chấm công thành công');
       fetchData();
     })
     .catch(error => {
-      // Đóng thông báo loading
-      hide();
       console.error("Error deleting attendance:", error);
       message.error('Không thể xóa dữ liệu chấm công: ' + error.message);
     });
@@ -217,9 +209,6 @@ const AdminAttendancePage = () => {
         note: values.note
       };
       
-      // Hiển thị thông báo đang xử lý
-      const hide = message.loading(`Đang ${editingAttendance ? 'cập nhật' : 'tạo mới'} dữ liệu chấm công...`, 0);
-      
       // Update or create attendance record
       const apiCall = editingAttendance && editingAttendance.id
         ? axios.post(`${API_URL}/api/attendance/admin/create-update`, {
@@ -234,16 +223,11 @@ const AdminAttendancePage = () => {
       
       apiCall
         .then(() => {
-          // Đóng thông báo loading
-          hide();
-          // Hiển thị thông báo thành công
-          message.success(`${editingAttendance ? 'Cập nhật' : 'Tạo mới'} dữ liệu chấm công thành công`, 3);
+          message.success(`${editingAttendance ? 'Cập nhật' : 'Tạo mới'} dữ liệu chấm công thành công`);
           setIsAttendanceModalVisible(false);
           fetchData();
         })
         .catch(error => {
-          // Đóng thông báo loading
-          hide();
           console.error("Error saving attendance:", error);
           message.error(`Không thể ${editingAttendance ? 'cập nhật' : 'tạo mới'} dữ liệu: ` + error.message);
         });
@@ -579,44 +563,6 @@ const AdminAttendancePage = () => {
         }
         // Nếu được tạo bởi admin, hiển thị Sửa/Xóa như mặc định
         if (record.createdBy === 'admin') {
-          // Kiểm tra xem lịch làm việc đã qua thời gian hiện tại chưa
-          const currentDate = dayjs();
-          const scheduleDate = dayjs(record.date);
-          const shiftTimes = {
-            morning: '06:00:00',
-            afternoon: '12:00:00',
-            evening: '18:00:00',
-            night: '00:00:00'
-          };
-          
-          // Tạo datetime cho thời điểm bắt đầu ca
-          const shiftStartTime = shiftTimes[record.shift];
-          if (shiftStartTime) {
-            const shiftStartDateTime = scheduleDate.hour(parseInt(shiftStartTime.split(':')[0])).minute(parseInt(shiftStartTime.split(':')[1]));
-            
-            // Nếu ca làm việc đã bắt đầu hoặc đã qua, ẩn nút sửa
-            const isPastShift = currentDate.isAfter(shiftStartDateTime);
-            
-            return (
-              <Space>
-                {!isPastShift && (
-                  <Button type="primary" size="small" onClick={() => handleEditSchedule(record)}>Sửa</Button>
-                )}
-                <Popconfirm
-                  title="Xác nhận xóa"
-                  description="Bạn có chắc chắn muốn xóa lịch làm việc này không?"
-                  icon={<QuestionCircleOutlined style={{ color: 'red' }} />}
-                  onConfirm={() => handleDeleteSchedule(record.id)}
-                  okText="Xóa"
-                  cancelText="Hủy"
-                >
-                  <Button danger size="small">Xóa</Button>
-                </Popconfirm>
-              </Space>
-            );
-          }
-          
-          // Fallback nếu không có thông tin thời gian ca
           return (
             <Space>
               <Button type="primary" size="small" onClick={() => handleEditSchedule(record)}>Sửa</Button>
@@ -896,22 +842,14 @@ const AdminAttendancePage = () => {
 
   const handleDeleteSchedule = (id) => {
     console.log("Đang xóa lịch làm việc...");
-    // Hiển thị thông báo đang xử lý
-    const hide = message.loading('Đang xóa lịch làm việc...', 0);
-    
     axios.delete(`${API_URL}/api/schedule/admin/${id}`, {
       headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
     })
     .then(() => {
-      // Đóng thông báo loading
-      hide();
-      // Hiển thị thông báo thành công
-      message.success('Xóa lịch làm việc thành công', 3);
+      message.success('Xóa lịch làm việc thành công');
       fetchData();
     })
     .catch(error => {
-      // Đóng thông báo loading
-      hide();
       console.error("Error deleting schedule:", error);
       message.error('Không thể xóa lịch làm việc: ' + error.message);
     });
@@ -934,15 +872,6 @@ const AdminAttendancePage = () => {
         return;
       }
       
-      // Kiểm tra lại ràng buộc thời gian trước khi gửi đi
-      if (isShiftDisabled(formattedValues.shift, formattedValues.date)) {
-        message.error(`Không thể phân công ca ${formattedValues.shift} do ràng buộc về thời gian`);
-        return;
-      }
-      
-      // Hiển thị thông báo đang xử lý
-      const hide = message.loading(`Đang ${editingSchedule ? 'cập nhật' : 'tạo mới'} lịch làm việc...`, 0);
-      
       // Gọi service thay vì API trực tiếp
       const apiCall = editingSchedule && editingSchedule.id
         ? updateSchedule(editingSchedule.id, formattedValues)
@@ -950,16 +879,11 @@ const AdminAttendancePage = () => {
       
       apiCall
         .then(() => {
-          // Đóng thông báo loading
-          hide();
-          // Hiển thị thông báo thành công
-          message.success(`${editingSchedule ? 'Cập nhật' : 'Tạo mới'} lịch làm việc thành công`, 3);
+          message.success(`${editingSchedule ? 'Cập nhật' : 'Tạo mới'} lịch làm việc thành công`);
           setIsScheduleModalVisible(false);
           fetchData();
         })
         .catch(error => {
-          // Đóng thông báo loading
-          hide();
           console.error("Error saving schedule:", error);
           const errorMessage = error.message || `Không thể ${editingSchedule ? 'cập nhật' : 'tạo mới'} dữ liệu`;
           message.error(errorMessage);
@@ -984,32 +908,44 @@ const AdminAttendancePage = () => {
   // Hàm kiểm tra ca làm việc có hợp lệ không (không phải trong quá khứ và không phải trong vòng 30 phút)
   const isShiftDisabled = (shift, selectedDate) => {
     if (!selectedDate) return false;
-
-    const now = dayjs();
-    const selected = dayjs(selectedDate).startOf('day');
-    const today = now.startOf('day');
-
-    // 1. Ngày quá khứ
-    if (selected.isBefore(today, 'day')) return true;
-
-    // 2. Ngày tương lai
-    if (selected.isAfter(today, 'day')) return false;
-
-    // 3. Ngày hiện tại
-    if (shift === 'night') return true;
-
-    const shiftTimes = {
-      morning: '06:00:00',
-      afternoon: '12:00:00',
-      evening: '18:00:00'
-    };
-    const shiftStartTime = shiftTimes[shift];
-    if (!shiftStartTime) return false;
-
-    // Tạo shiftStart cho ngày hôm nay
-    const shiftStart = today.hour(parseInt(shiftStartTime.split(':')[0])).minute(parseInt(shiftStartTime.split(':')[1])).second(0);
-    // Nếu giờ hiện tại đã qua hoặc còn dưới 30 phút thì disable
-    return shiftStart.isBefore(now.add(30, 'minute'));
+    
+    const currentDate = dayjs();
+    const scheduleDate = dayjs(selectedDate);
+    
+    // Nếu ngày đã qua, disable tất cả ca
+    if (scheduleDate.isBefore(currentDate, 'day')) {
+      return true;
+    }
+    
+    // Nếu là ngày hiện tại, cần kiểm tra theo từng ca
+    if (scheduleDate.isSame(currentDate, 'day')) {
+      // Lấy thông tin thời gian bắt đầu của ca
+      const shiftTimes = {
+        morning: '06:00:00',
+        afternoon: '12:00:00',
+        evening: '18:00:00',
+        night: '00:00:00'
+      };
+      
+      const shiftStartTime = shiftTimes[shift];
+      if (!shiftStartTime) return false;
+      
+      // Tạo đối tượng datetime cho thời điểm ca bắt đầu
+      const shiftStartDateTime = scheduleDate.hour(parseInt(shiftStartTime.split(':')[0])).minute(parseInt(shiftStartTime.split(':')[1]));
+      
+      // Nếu thời gian hiện tại đã vượt qua thời gian bắt đầu ca, disable
+      if (currentDate.isAfter(shiftStartDateTime)) {
+        return true;
+      }
+      
+      // Nếu thời gian hiện tại gần thời gian bắt đầu ca ít hơn 30 phút, disable
+      const minTimeBeforeShift = shiftStartDateTime.subtract(30, 'minute');
+      if (currentDate.isAfter(minTimeBeforeShift)) {
+        return true;
+      }
+    }
+    
+    return false;
   };
 
   const handleOpenDailyStats = () => {
@@ -1426,12 +1362,31 @@ const AdminAttendancePage = () => {
                   label="Ca làm việc"
                   rules={[{ required: true, message: 'Vui lòng chọn ca làm việc' }]}
                 >
-                  <Select placeholder="Chọn ca làm việc">
-                    <Option value="morning" disabled={isShiftDisabled('morning', scheduleForm.getFieldValue('date'))}>Ca sáng (6:00 - 12:00)</Option>
-                    <Option value="afternoon" disabled={isShiftDisabled('afternoon', scheduleForm.getFieldValue('date'))}>Ca chiều (12:00 - 18:00)</Option>
-                    <Option value="evening" disabled={isShiftDisabled('evening', scheduleForm.getFieldValue('date'))}>Ca tối (18:00 - 00:00)</Option>
-                    <Option value="night" disabled={isShiftDisabled('night', scheduleForm.getFieldValue('date'))}>Ca đêm (00:00 - 6:00)</Option>
-                  </Select>
+                  <Select 
+                    placeholder="Chọn ca làm việc"
+                    options={[
+                      { 
+                        value: 'morning', 
+                        label: 'Ca sáng (6:00 - 12:00)',
+                        disabled: isShiftDisabled('morning', scheduleForm.getFieldValue('date'))
+                      },
+                      { 
+                        value: 'afternoon', 
+                        label: 'Ca chiều (12:00 - 18:00)', 
+                        disabled: isShiftDisabled('afternoon', scheduleForm.getFieldValue('date'))
+                      },
+                      { 
+                        value: 'evening', 
+                        label: 'Ca tối (18:00 - 00:00)',
+                        disabled: isShiftDisabled('evening', scheduleForm.getFieldValue('date'))
+                      },
+                      { 
+                        value: 'night', 
+                        label: 'Ca đêm (00:00 - 6:00)',
+                        disabled: isShiftDisabled('night', scheduleForm.getFieldValue('date'))
+                      }
+                    ]}
+                  />
                 </Form.Item>
                 
                 {editingSchedule && (

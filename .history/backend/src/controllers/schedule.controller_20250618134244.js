@@ -1145,6 +1145,5 @@ module.exports = {
   getAvailableShifts: exports.getAvailableShifts,
   getShiftStats: exports.getShiftStats,
   getWeeklyScheduleSummary: exports.getWeeklyScheduleSummary,
-  getStaffRegisteredSchedules: exports.getStaffRegisteredSchedules,
-  autoRejectUnconfirmedSchedules: exports.autoRejectUnconfirmedSchedules
+  getStaffRegisteredSchedules: exports.getStaffRegisteredSchedules
 };

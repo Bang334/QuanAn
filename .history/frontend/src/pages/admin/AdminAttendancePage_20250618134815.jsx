@@ -984,32 +984,48 @@ const AdminAttendancePage = () => {
   // Hàm kiểm tra ca làm việc có hợp lệ không (không phải trong quá khứ và không phải trong vòng 30 phút)
   const isShiftDisabled = (shift, selectedDate) => {
     if (!selectedDate) return false;
-
-    const now = dayjs();
-    const selected = dayjs(selectedDate).startOf('day');
-    const today = now.startOf('day');
-
-    // 1. Ngày quá khứ
-    if (selected.isBefore(today, 'day')) return true;
-
-    // 2. Ngày tương lai
-    if (selected.isAfter(today, 'day')) return false;
-
-    // 3. Ngày hiện tại
-    if (shift === 'night') return true;
-
+    
+    const currentDate = dayjs();
+    const scheduleDate = dayjs(selectedDate);
+    
+    // Nếu ngày đã qua, disable tất cả ca
+    if (scheduleDate.isBefore(currentDate, 'day')) {
+      return true;
+    }
+    
+    // Nếu ngày trong tương lai (sau ngày hiện tại), tất cả các ca đều có thể chọn
+    if (scheduleDate.isAfter(currentDate, 'day')) {
+      return false;
+    }
+    
+    // Đến đây nghĩa là đang xét ngày hiện tại
+    
+    // Với ca đêm, không cho phép chọn vào ngày hiện tại
+    if (shift === 'night') {
+      return true;
+    }
+    
+    // Với các ca khác, kiểm tra thời gian
     const shiftTimes = {
       morning: '06:00:00',
       afternoon: '12:00:00',
       evening: '18:00:00'
     };
+    
     const shiftStartTime = shiftTimes[shift];
+    
     if (!shiftStartTime) return false;
-
-    // Tạo shiftStart cho ngày hôm nay
-    const shiftStart = today.hour(parseInt(shiftStartTime.split(':')[0])).minute(parseInt(shiftStartTime.split(':')[1])).second(0);
-    // Nếu giờ hiện tại đã qua hoặc còn dưới 30 phút thì disable
-    return shiftStart.isBefore(now.add(30, 'minute'));
+    
+    // Tạo datetime cho thời điểm bắt đầu ca
+    const today = currentDate.format('YYYY-MM-DD');
+    const shiftStart = dayjs(`${today} ${shiftStartTime}`);
+    
+    // Thêm 30 phút vào thời gian hiện tại để đảm bảo phân công trước 30 phút
+    const timeWithBuffer = currentDate.add(30, 'minute');
+    
+    // Nếu thời gian bắt đầu ca trừ đi 30 phút buffer vẫn trước thời điểm hiện tại
+    // thì ca đó không thể được chọn
+    return shiftStart.isBefore(timeWithBuffer);
   };
 
   const handleOpenDailyStats = () => {
@@ -1426,12 +1442,31 @@ const AdminAttendancePage = () => {
                   label="Ca làm việc"
                   rules={[{ required: true, message: 'Vui lòng chọn ca làm việc' }]}
                 >
-                  <Select placeholder="Chọn ca làm việc">
-                    <Option value="morning" disabled={isShiftDisabled('morning', scheduleForm.getFieldValue('date'))}>Ca sáng (6:00 - 12:00)</Option>
-                    <Option value="afternoon" disabled={isShiftDisabled('afternoon', scheduleForm.getFieldValue('date'))}>Ca chiều (12:00 - 18:00)</Option>
-                    <Option value="evening" disabled={isShiftDisabled('evening', scheduleForm.getFieldValue('date'))}>Ca tối (18:00 - 00:00)</Option>
-                    <Option value="night" disabled={isShiftDisabled('night', scheduleForm.getFieldValue('date'))}>Ca đêm (00:00 - 6:00)</Option>
-                  </Select>
+                  <Select 
+                    placeholder="Chọn ca làm việc"
+                    options={[
+                      { 
+                        value: 'morning', 
+                        label: 'Ca sáng (6:00 - 12:00)',
+                        disabled: isShiftDisabled('morning', scheduleForm.getFieldValue('date'))
+                      },
+                      { 
+                        value: 'afternoon', 
+                        label: 'Ca chiều (12:00 - 18:00)', 
+                        disabled: isShiftDisabled('afternoon', scheduleForm.getFieldValue('date'))
+                      },
+                      { 
+                        value: 'evening', 
+                        label: 'Ca tối (18:00 - 00:00)',
+                        disabled: isShiftDisabled('evening', scheduleForm.getFieldValue('date'))
+                      },
+                      { 
+                        value: 'night', 
+                        label: 'Ca đêm (00:00 - 6:00)',
+                        disabled: isShiftDisabled('night', scheduleForm.getFieldValue('date'))
+                      }
+                    ]}
+                  />
                 </Form.Item>
                 
                 {editingSchedule && (
